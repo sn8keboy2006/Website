@@ -12,26 +12,34 @@
     <a href="about.html">About</a>
     <a href="threads.html">Threads</a>
   </nav>
-  <main>
-    <h1>Threads</h1>
-    <div class="thread-section">
-      <h2>Snakeboy's Posts</h2>
-      <a class="thread-link" href="snakeboy-thread.html">Go to Snakeboy's Thread</a>
+  <main class="threads-main">
+    <div class="thread-window">
+      <div class="thread-info">
+        <div class="thread-comments">💬 32 comments</div>
+        <div class="thread-blurb">"The world is waking up. What will you dream next?"</div>
+      </div>
+      <button class="thread-link-btn" onclick="window.location.href='snakeboy-thread.html'">View Thread</button>
     </div>
-    <div class="thread-section">
-      <h2>IU's Journal</h2>
-      <a class="thread-link" href="iu-thread.html">Go to IU's Journal</a>
+    <div class="thread-window">
+      <div class="thread-info">
+        <div class="thread-comments">💬 18 comments</div>
+        <div class="thread-blurb">"IU reflects on the creative process and its quiet revelations."</div>
+      </div>
+      <button class="thread-link-btn" onclick="window.location.href='iu-thread.html'">View Thread</button>
     </div>
-    <div class="thread-section">
-      <h2>MainPhreaker</h2>
-      <a class="thread-link" href="mainphreaker-thread.html">Go to MainPhreaker's Thread</a>
+    <div class="thread-window">
+      <div class="thread-info">
+        <div class="thread-comments">💬 41 comments</div>
+        <div class="thread-blurb">"MainPhreaker on technical dreams, digital reality, and code as poetry."</div>
+      </div>
+      <button class="thread-link-btn" onclick="window.location.href='mainphreaker-thread.html'">View Thread</button>
     </div>
   </main>
   <footer>
-    &copy; 2025 Snakeboy, IU, & MainPhreaker
+    <span>&copy; 2025 Snakeboy, IU, & MainPhreaker</span>
+    <span class="footer-right">
+      <span class="footer-viewcount">Views: <span id="view-count">1522</span></span>
+    </span>
   </footer>
-  <div class="view-counter-tab">
-    Views: <span id="view-count">1522</span>
-  </div>
 </body>
 </html>
