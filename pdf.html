@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Manifesto</title>
   <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <nav>
@@ -13,19 +12,37 @@
     <a href="about.html">About</a>
     <a href="threads.html">Threads</a>
   </nav>
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-title">
+        Dreaming Together;<br>
+        <span class="hero-subtitle">A Manifesto</span>
+      </div>
+      <div class="hero-desc">
+        Click below to view or download the full manifesto as a PDF.
+      </div>
+      <div class="hero-actions">
+        <a class="manifesto-btn" href="pdfs/manifesto.pdf" target="_blank">View Manifesto PDF</a>
+        <button class="share-btn" onclick="copyShareLink()">Share</button>
+      </div>
+    </div>
+  </div>
   <main>
-    <h1>
-      Dreaming Together;<br>
-      <span class="manifesto-subtitle">A Manifesto</span>
-    </h1>
-    <p>Click below to view or download the full manifesto as a PDF:</p>
-    <a class="pdf-link" href="pdfs/manifesto.pdf" target="_blank">View Manifesto PDF</a>
+    <!-- If more content is needed, add here -->
   </main>
   <footer>
-    &copy; 2025 MainPhreaker
+    <span class="footer-copy">&copy; 2025 Snakeboy, IU, & MainPhreaker</span>
+    <span class="footer-viewcount">Views: <span id="view-count">1522</span></span>
   </footer>
-  <div class="view-counter-tab">
-    Views: <span id="view-count">1522</span>
-  </div>
+  <script>
+    function copyShareLink() {
+      navigator.clipboard.writeText(window.location.href)
+        .then(() => {
+          const btn = document.querySelector('.share-btn');
+          btn.textContent = "Copied!";
+          setTimeout(() => btn.textContent = "Share", 1200);
+        });
+    }
+  </script>
 </body>
 </html>
