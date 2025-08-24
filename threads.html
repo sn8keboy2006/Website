@@ -4,6 +4,26 @@
   <meta charset="UTF-8">
   <title>Threads</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Stylized bookmark for thread titles inside thread window */
+    .thread-bookmark {
+      display: inline-block;
+      background: #bcd2e8;
+      color: #232a35;
+      font-weight: 700;
+      font-size: 1.08em;
+      border-radius: 7px 7px 7px 0;
+      padding: 0.13em 1em 0.13em 0.75em;
+      box-shadow: 0 2px 8px rgba(34,45,58,0.10);
+      letter-spacing: 0.04em;
+      border-left: 5px solid #353c48;
+      border-bottom: 2px solid #353c48;
+      margin-bottom: 0.7em;
+    }
+    .thread-info {
+      margin-left: 0;
+    }
+  </style>
 </head>
 <body>
   <nav>
@@ -13,29 +33,37 @@
     <a href="threads.html">Threads</a>
   </nav>
   <main class="threads-main">
-    <h2>Snakeboy's Posts</h2>
     <div class="thread-window">
       <div class="thread-info">
+        <span class="thread-bookmark">Snakeboy: Nightworld Confessions</span>
         <div class="thread-comments">💬 32 comments</div>
         <div class="thread-blurb">"I had the dream again..."</div>
       </div>
       <button class="thread-link-btn" onclick="window.location.href='snakeboy-thread.html'">View Thread</button>
     </div>
-    <h2>IU's Journal</h2>
     <div class="thread-window">
       <div class="thread-info">
+        <span class="thread-bookmark">IU: Tangerine Diaries</span>
         <div class="thread-comments">💬 18 comments</div>
         <div class="thread-blurb">"Once, I was very excited about this show..."</div>
       </div>
       <button class="thread-link-btn" onclick="window.location.href='iu-thread.html'">View Thread</button>
     </div>
-    <h2>Mainphreaker's Contribution</h2>
     <div class="thread-window">
       <div class="thread-info">
+        <span class="thread-bookmark">MainPhreaker: Transparency Logs</span>
         <div class="thread-comments">💬 41 comments</div>
         <div class="thread-blurb">"As the sun swells..."</div>
       </div>
       <button class="thread-link-btn" onclick="window.location.href='mainphreaker-thread.html'">View Thread</button>
+    </div>
+    <div class="thread-window">
+      <div class="thread-info">
+        <span class="thread-bookmark">General/Miscellaneous</span>
+        <div class="thread-comments">💬 7 comments</div>
+        <div class="thread-blurb">"All stray thoughts, errata, and tangents go here."</div>
+      </div>
+      <button class="thread-link-btn" onclick="window.location.href='general-thread.html'">View Thread</button>
     </div>
   </main>
   <footer>
