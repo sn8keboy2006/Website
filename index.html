@@ -2,9 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dreaming Together; A Manifesto</title>
+  <title>Manifesto</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .manifesto-actions {
+      display: flex;
+      gap: 1.2rem;
+      margin: 3rem auto 2.2rem auto;
+      justify-content: center;
+    }
+    .manifesto-btn {
+      background: #353c48;
+      color: #bcd2e8;
+      border: none;
+      border-radius: 9px;
+      padding: 0.9rem 1.6rem;
+      font-weight: 700;
+      font-size: 1.08em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(34,45,58,0.10);
+      transition: background 0.2s, color 0.18s, transform 0.14s;
+      margin: 0 0.2em;
+    }
+    .manifesto-btn:hover {
+      background: #bcd2e8;
+      color: #232a35;
+      transform: scale(1.08);
+    }
+    .center-title {
+      text-align: center;
+      color: #bcd2e8;
+      margin-top: 3.5rem;
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    .subtitle {
+      text-align: center;
+      color: #c9d1d9;
+      margin-bottom: 1.5rem;
+      font-size: 1.18rem;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+  </style>
 </head>
 <body>
   <nav>
@@ -12,36 +53,36 @@
     <a href="index.html">Manifesto</a>
     <a href="threads.html">Threads</a>
   </nav>
-  <div class="hero">
-    <div class="hero-content">
-      <div class="hero-title">
-        Dreaming Together;<br>
-        <span class="hero-subtitle">A Manifesto</span>
-      </div>
-      <div class="hero-desc">
-        Click to Read or Download the full manifesto as a PDF.
-      </div>
-      <div class="hero-actions">
-        <a class="manifesto-btn" href="pdfs/manifesto.pdf" target="_blank">Download Manifesto</a>
-        <button class="share-btn" onclick="copyShareLink()">Share</button>
-      </div>
-    </div>
+
+  <h1 class="center-title">Manifesto</h1>
+  <p class="subtitle">A collection of revelations, obsessions, and stories. Read, save, or share your journey.</p>
+
+  <div class="manifesto-actions">
+    <button class="manifesto-btn" onclick="window.location.href='manifesto.html'">View</button>
+    <button class="manifesto-btn" onclick="downloadManifesto()">Download</button>
+    <button class="manifesto-btn" onclick="shareManifesto()">Share</button>
   </div>
-  <main>
-    <!-- Add any homepage content here -->
-  </main>
+
   <footer>
     <span class="footer-copy">&copy; 2025 Snakeboy, IU, & MainPhreaker</span>
-    <span class="footer-viewcount">Views: <span id="view-count">1522</span></span>
   </footer>
+
   <script>
-    function copyShareLink() {
-      navigator.clipboard.writeText(window.location.href)
-        .then(() => {
-          const btn = document.querySelector('.share-btn');
-          btn.textContent = "Copied!";
-          setTimeout(() => btn.textContent = "Share", 1200);
+    function downloadManifesto() {
+      // Replace with actual path to your PDF
+      window.location.href = "manifesto.pdf";
+    }
+
+    function shareManifesto() {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Manifesto',
+          url: window.location.href
         });
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+        alert("Link copied to clipboard!");
+      }
     }
   </script>
 </body>
