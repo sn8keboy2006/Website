@@ -10,14 +10,21 @@
       align-items: flex-start;
       gap: 2.3rem;
       margin-bottom: 2.5rem;
-      padding-bottom: 1.2rem;
-      border-bottom: 1px solid #222d3a;
+      padding: 2.2rem 2.2rem 1.2rem 2.2rem;
+      background: #232a35;
+      border-radius: 18px;
+      border: 2px solid #353c48;
+      box-shadow: 0 2px 16px rgba(34,45,58,0.13);
     }
     .bio-img-group {
       display: flex;
       flex-direction: column;
       align-items: center;
       min-width: 160px;
+      margin-top: 1.1em;
+    }
+    .bio-img-group.snakeboy {
+      margin-top: 2.3em; /* Lower Snake-boy to match others visually */
     }
     .bio-img-label {
       font-weight: 700;
@@ -31,6 +38,7 @@
       margin-top: 0.2rem;
       font-size: 1.09em;
       max-width: 540px;
+      color: #c9d1d9;
     }
     .charity-link {
       color: #bcd2e8;
@@ -43,16 +51,16 @@
         flex-direction: column;
         gap: 1.2rem;
         align-items: flex-start;
+        padding: 1.2rem 1rem 1.2rem 1rem;
       }
-      .bio-img-group {
+      .bio-img-group,
+      .bio-img-group.snakeboy {
         min-width: 0;
+        margin-top: 1em;
       }
       .bio-content {
         max-width: 100%;
       }
-    }
-    .bio-section:last-child {
-      border-bottom: none;
     }
   </style>
 </head>
@@ -65,7 +73,7 @@
   </nav>
   <main>
     <section class="bio-section">
-      <div class="bio-img-group">
+      <div class="bio-img-group snakeboy">
         <span class="bio-img-label">Snake-boy</span>
         <img src="images/Snakeboy.jpg" alt="Snakeboy" class="author-photo">
       </div>

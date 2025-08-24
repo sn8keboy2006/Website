@@ -5,20 +5,22 @@
   <title>Threads</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Stylized bookmark for thread titles inside thread window */
+    /* Stylized soft rectangle for thread titles */
     .thread-bookmark {
       display: inline-block;
       background: #bcd2e8;
       color: #232a35;
       font-weight: 700;
       font-size: 1.08em;
-      border-radius: 7px 7px 7px 0;
-      padding: 0.13em 1em 0.13em 0.75em;
+      border-radius: 12px;
+      padding: 0.16em 1.4em 0.16em 1em;
       box-shadow: 0 2px 8px rgba(34,45,58,0.10);
       letter-spacing: 0.04em;
-      border-left: 5px solid #353c48;
+      border-left: 6px solid #353c48;
       border-bottom: 2px solid #353c48;
       margin-bottom: 0.7em;
+      margin-left: -0.5em;
+      /* Ensures no clipping on left side */
     }
     .thread-info {
       margin-left: 0;
@@ -33,6 +35,14 @@
     <a href="threads.html">Threads</a>
   </nav>
   <main class="threads-main">
+    <div class="thread-window">
+      <div class="thread-info">
+        <span class="thread-bookmark">General/Miscellaneous</span>
+        <div class="thread-comments">💬 7 comments</div>
+        <div class="thread-blurb">"All stray thoughts, errata, and tangents go here."</div>
+      </div>
+      <button class="thread-link-btn" onclick="window.location.href='general-thread.html'">View Thread</button>
+    </div>
     <div class="thread-window">
       <div class="thread-info">
         <span class="thread-bookmark">Snakeboy: Nightworld Confessions</span>
@@ -56,14 +66,6 @@
         <div class="thread-blurb">"As the sun swells..."</div>
       </div>
       <button class="thread-link-btn" onclick="window.location.href='mainphreaker-thread.html'">View Thread</button>
-    </div>
-    <div class="thread-window">
-      <div class="thread-info">
-        <span class="thread-bookmark">General/Miscellaneous</span>
-        <div class="thread-comments">💬 7 comments</div>
-        <div class="thread-blurb">"All stray thoughts, errata, and tangents go here."</div>
-      </div>
-      <button class="thread-link-btn" onclick="window.location.href='general-thread.html'">View Thread</button>
     </div>
   </main>
   <footer>
