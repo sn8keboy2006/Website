@@ -4,6 +4,34 @@
   <meta charset="UTF-8">
   <title>About</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    .bio-section {
+      margin-bottom: 2.7rem;
+      padding-bottom: 1.2rem;
+      border-bottom: 1px solid #222d3a;
+    }
+    .bio-img-label {
+      font-weight: 700;
+      color: #bcd2e8;
+      margin-bottom: 0.35rem;
+      display: block;
+      font-size: 1.08em;
+      letter-spacing: 0.04em;
+    }
+    .bio-content {
+      margin-top: 0.7rem;
+      font-size: 1.09em;
+    }
+    .charity-link {
+      color: #bcd2e8;
+      text-decoration: underline;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .bio-section:last-child {
+      border-bottom: none;
+    }
+  </style>
 </head>
 <body>
   <nav>
@@ -13,20 +41,29 @@
     <a href="threads.html">Threads</a>
   </nav>
   <main>
-    <section>
+    <section class="bio-section">
+      <span class="bio-img-label">Snake-boy</span>
       <img src="images/Snakeboy.jpg" alt="Snakeboy" class="author-photo">
-      <h2>Snakeboy</h2>
-      <p><!-- Add content about Snakeboy here --></p>
+      <div class="bio-content">
+        Little is known about their identity beyond what they’ve told us. Snake-boy presents as an ~18 y/o American male of probable Midwest background. During the day, they are an unremarkable high school student, but at night, they tend to a love (long past obsession) with the K-Pop idol IU. They claim to sustain a relationship with IU when they go to sleep.<br><br>
+        Over the course of 32 hours, Snake-boy left simultaneous posts on many prominent and infamous forums, including Reddit, 4chan, fanfiction platforms, and others not named for your protection. Many of these posts have since been removed by moderators and/or deleted by their creator, but not before they could be scraped together into the first half of this manifesto.
+      </div>
     </section>
-    <section>
+    <section class="bio-section">
+      <span class="bio-img-label">IU</span>
       <img src="images/IU.jpg" alt="IU" class="author-photo">
-      <h2>IU</h2>
-      <p><!-- Add content about IU here --></p>
+      <div class="bio-content">
+        Multi-hyphenate K-Pop super-star Lee ‘IU’ Ji-eun is a chart-topping singer-songwriter and award-winning actress. According to various polls, she is the most beloved kpop artist of the century. She stars in some of the most-watched TV shows in Korean history, including the highest rated K-drama on IMDb, <i>When Life Gives You Tangerines</i>. She is also the muse (and possibly friend) of our Snake-boy.<br><br>
+        IU’s translated journal entries are presented here in the abridged, though otherwise unedited. As of the current date, she has made no public acceptance or denial of the claims presented in this manifesto. How her journal was obtained is left to your imagination.
+      </div>
     </section>
-    <section>
+    <section class="bio-section">
+      <span class="bio-img-label">MainPhreaker</span>
       <img src="images/MainPhreaker.png" alt="MainPhreaker" class="author-photo">
-      <h2>MainPhreaker</h2>
-      <p><!-- Add content about MainPhreaker here --></p>
+      <div class="bio-content">
+        I am merely a good Samaritan. I believe in transparency when it is ethical. I work for free and open access to art and its synonyms. I will <b><i>never</i></b> take donations and caution you against imposters.<br><br>
+        If you’re feeling grateful and want to spend your hard-earned money, consider IU’s list of charities (<a class="charity-link" href="#">CharityList.doc</a>), or humanitarian aid to Ukraine, Gaza, Sudan, or wherever society looks away from.
+      </div>
     </section>
   </main>
   <footer>
