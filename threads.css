@@ -1,0 +1,24 @@
+.thread {
+  border: 1px solid #ccc;
+  margin-bottom: 20px;
+  padding: 20px 15px 15px 15px;
+  position: relative;
+  background: #fafafa;
+  border-radius: 8px;
+}
+.thread-bookmark {
+  position: absolute;
+  top: -14px;
+  left: 18px;
+  background: #f7d774;
+  color: #222;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  font-size: 1.05em;
+  letter-spacing: 0.5px;
+}
+.thread-comments {
+  margin-top: 18px;
+}
