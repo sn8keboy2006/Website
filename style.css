@@ -25,8 +25,11 @@ main {
 
 
 footer {
-  margin-top: auto; /* snaps footer to bottom */
+  margin-top: 0;    /* remove extra spacing */
+  flex-shrink: 0;   /* prevent footer from shrinking */
+  background: #101820; /* solid footer color */
 }
+
 
 
 /* Navigation */
