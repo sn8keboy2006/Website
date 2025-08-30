@@ -16,12 +16,13 @@ body {
   color: #f8f8f8;
 }
 
-/* Push footer to the bottom */
 main {
-  flex: 1;  /* expands to fill available space */
-  margin: 0 auto; /* remove top margin */
-  padding: 0;    /* optional: remove padding if it causes visual gap */
+  flex: 1;              /* expands to fill available space */
+  margin: 0 auto;       /* horizontally center, no top margin */
+  padding: 0 0 2rem 0;  /* optional bottom padding, no top padding */
+  max-width: 800px;
 }
+
 
 footer {
   margin-top: auto; /* snaps footer to bottom */
@@ -180,13 +181,6 @@ footer {
 .share-btn:active {
   background: #294876;
   color: #f8f8f8;
-}
-
-/* Main Content */
-main {
-  margin: 2rem auto 0 auto;
-  padding: 2rem 0 0 0;
-  max-width: 800px;
 }
 
 /* Headings */
