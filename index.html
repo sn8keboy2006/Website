@@ -6,8 +6,27 @@
   <title>Dreaming Together A Manifesto</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Infinity background */
+    .infinity-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url("infinity_symbol.png") 
+                  no-repeat center center;
+      background-size: contain; /* use 'cover' if you want it to fill */
+      opacity: 0.5; /* 50% transparency */
+      pointer-events: none; /* makes sure clicks pass through */
+      z-index: -1; /* ensures it stays behind content */
+    }
+  </style>
 </head>
 <body>
+  <!-- Infinity symbol background -->
+  <div class="infinity-bg"></div>
+  
   <nav>
     <a href="about.html">About</a>
     <a href="index.html">Manifesto</a>
