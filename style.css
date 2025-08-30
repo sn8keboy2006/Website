@@ -19,6 +19,8 @@ body {
 /* Push footer to the bottom */
 main {
   flex: 1;  /* expands to fill available space */
+  margin: 0 auto; /* remove top margin */
+  padding: 0;    /* optional: remove padding if it causes visual gap */
 }
 
 footer {
