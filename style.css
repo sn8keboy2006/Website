@@ -7,6 +7,23 @@ body {
   min-height: 100vh;
 }
 
+/* Make the page stretch full height & use flexbox */
+html, body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Push footer to the bottom */
+main {
+  flex: 1;  /* expands to fill available space */
+}
+
+footer {
+  margin-top: auto; /* snaps footer to bottom */
+}
+
+
 /* Navigation */
 nav {
   background: #101820;
