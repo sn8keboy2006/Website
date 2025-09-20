@@ -164,42 +164,16 @@
       background: #bcd2e8;
       color: #232a35;
     }
-    .captcha-row {
-      display: flex;
-      align-items: center;
-      gap: 1em;
-      margin-bottom: 1em;
-      width: 100%;
-    }
-    .captcha-img {
-      border-radius: 6px;
-      border: 1px solid #353c48;
-      background: #fff;
-      height: 48px;
-    }
-    .captcha-input {
-      border-radius: 6px;
-      border: 1px solid #353c48;
-      padding: 0.3em 0.7em;
-      font-size: 1em;
-      background: #181818;
-      color: #f8f8f8;
-      width: 100px;
-    }
-    .captcha-refresh {
-      background: #353c48;
-      color: #bcd2e8;
-      border: none;
-      border-radius: 6px;
-      padding: 0.3em 0.7em;
-      font-size: 0.98em;
-      cursor: pointer;
-    }
     .captcha-error {
       color: #e54d4d;
       font-size: 0.98em;
       margin-top: 0.3em;
       width: 100%;
+    }
+    .captcha-toggle-row {
+      margin-bottom: 1em;
+      color: #bcd2e8;
+      font-size: 0.98em;
     }
     @media (max-width: 900px) {
       .comments-section {
@@ -211,6 +185,7 @@
       }
     }
   </style>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
   <nav>
@@ -222,12 +197,16 @@
   <main>
     <h1>Snakeboy's Posts</h1>
     <section class="comments-section">
+      <div class="captcha-toggle-row">
+        <label>
+          <input type="checkbox" id="captchaToggle" checked>
+          Enable reCAPTCHA for posting
+        </label>
+      </div>
       <form id="commentForm" class="comment-form">
         <textarea id="commentText" class="comment-textarea" placeholder="Share your thoughts or reply to Snakeboy..." required></textarea>
-        <div id="captchaRow" class="captcha-row" style="display:none;">
-          <img id="captchaImg" class="captcha-img" src="captcha.php" alt="CAPTCHA" />
-          <input type="text" id="captchaInput" class="captcha-input" placeholder="Enter code" autocomplete="off" />
-          <button type="button" class="captcha-refresh" id="captchaRefresh">↻</button>
+        <div id="captchaSection">
+          <div class="g-recaptcha" data-sitekey="6Lemys8rAAAAAHI78X81-LG39PbHutcLE8_R_KS_"></div>
         </div>
         <div id="captchaError" class="captcha-error"></div>
         <button type="submit" class="comment-btn">Post Comment</button>
@@ -243,6 +222,16 @@
     // --- CONFIG ---
     const COMMENTS_PER_PAGE = 20;
     const ADMIN_USER = 'sn8keboy2006';
+    window.disableCaptcha = false;
+
+    // Toggle logic
+    const captchaToggle = document.getElementById('captchaToggle');
+    captchaToggle.checked = !window.disableCaptcha;
+    captchaToggle.addEventListener('change', function() {
+      window.disableCaptcha = !captchaToggle.checked;
+      document.getElementById('captchaSection').style.display = window.disableCaptcha ? "none" : "block";
+    });
+    document.getElementById('captchaSection').style.display = window.disableCaptcha ? "none" : "block";
 
     function isAdmin() {
       if (window.isBackendAdmin === true) return true;
@@ -251,65 +240,203 @@
       return false;
     }
 
-    let captchaAnswered = sessionStorage.getItem('snakeboyCaptchaDone') === 'true';
-    function setupCaptcha() {
-      if (isAdmin()) return;
-      if (captchaAnswered) return;
-      document.getElementById('captchaRow').style.display = 'flex';
-      document.getElementById('captchaError').textContent = '';
-      refreshCaptchaImg();
-      document.getElementById('captchaInput').value = '';
+    // --- DATA, PAGINATION, FORMAT, RENDER: (same as previous answers) ---
+    function loadComments() {
+      let comments = JSON.parse(localStorage.getItem('snakeboyThreadComments') || '[]');
+      if (!comments || comments.length === 0) {
+        comments = [
+          {
+            id: Date.now(),
+            body: "I had the dream again. The one where the tangerines talk back. Does anyone else get that?",
+            date: "2025-09-20T07:00:00.000Z",
+            replies: [
+              {
+                id: Date.now() + 1,
+                body: "Same here. Except mine were oranges. Wonder what it means...",
+                date: "2025-09-20T12:00:00.000Z"
+              }
+            ]
+          }
+        ];
+        localStorage.setItem('snakeboyThreadComments', JSON.stringify(comments));
+      }
+      return comments;
     }
-    function refreshCaptchaImg() {
-      document.getElementById('captchaImg').src = 'captcha.php?rand=' + Math.random();
+    function saveComments(comments) {
+      localStorage.setItem('snakeboyThreadComments', JSON.stringify(comments));
     }
-    document.getElementById('captchaRefresh').onclick = refreshCaptchaImg;
-
-    function checkCaptcha(cb) {
-      if (isAdmin()) return cb(true);
-      if (captchaAnswered) return cb(true);
-      const code = document.getElementById('captchaInput').value.trim();
-      fetch('captcha.php', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'code=' + encodeURIComponent(code)
-      })
-      .then(r=>r.json())
-      .then(data=>{
-        if (data.valid) {
-          captchaAnswered = true;
-          sessionStorage.setItem('snakeboyCaptchaDone','true');
-          document.getElementById('captchaRow').style.display = 'none';
-          document.getElementById('captchaError').textContent = '';
-          cb(true);
-        } else {
-          document.getElementById('captchaError').textContent = "Incorrect code. Try again.";
-          refreshCaptchaImg();
-          document.getElementById('captchaInput').value = '';
-          cb(false);
-        }
-      })
-      .catch(()=>{
-        document.getElementById('captchaError').textContent = "CAPTCHA error. Please reload.";
-        cb(false);
+    let currentPage = 1;
+    function setPage(page) {
+      currentPage = page;
+      renderComments();
+    }
+    function getTotalPages(comments) {
+      return Math.max(1, Math.ceil(comments.length / COMMENTS_PER_PAGE));
+    }
+    function formatDateUSCentral(dt) {
+      const date = new Date(dt);
+      let offset = -6;
+      const jan = new Date(date.getFullYear(), 0, 1);
+      const jul = new Date(date.getFullYear(), 6, 1);
+      const stdTimezoneOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+      if (date.getTimezoneOffset() < stdTimezoneOffset) offset = -5;
+      let central = new Date(date.getTime() + (offset * 60 * 60 * 1000));
+      return central.toLocaleDateString('en-US', {year: 'numeric', month: '2-digit', day: '2-digit'});
+    }
+    function escapeHTML(str) {
+      return str.replace(/[&<>"']/g, function(m) {
+        return ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        })[m];
       });
     }
-
-    // --- DATA, PAGINATION, FORMAT, RENDER: (same as previous answers) ---
-
+    function formatText(str) {
+      str = escapeHTML(str);
+      str = str.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/g, function(_, spoilerText) {
+        return `<span class="spoiler" onclick="this.classList.add('revealed');">${escapeHTML(spoilerText)}</span>`;
+      });
+      str = str.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
+      str = str.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+      return str;
+    }
+    function renderComments() {
+      const comments = loadComments();
+      const commentList = document.getElementById('commentList');
+      commentList.innerHTML = '';
+      const totalPages = getTotalPages(comments);
+      if (currentPage > totalPages) currentPage = totalPages;
+      const startIdx = comments.length - (currentPage * COMMENTS_PER_PAGE);
+      const endIdx = comments.length - ((currentPage-1) * COMMENTS_PER_PAGE);
+      const pageComments = comments.slice(Math.max(0, startIdx), endIdx);
+      pageComments.forEach((comment, idx) => {
+        const li = document.createElement('li');
+        li.className = 'comment';
+        li.innerHTML = `
+          <div class="comment-meta">Anonymous &bull; ${formatDateUSCentral(comment.date)}
+            ${isAdmin() ? `<button class="delete-btn" title="Delete comment" data-id="${comment.id}">Delete</button>` : ''}
+          </div>
+          <div class="comment-body">${formatText(comment.body)}</div>
+          <button class="reply-btn" data-id="${comment.id}">Reply</button>
+          <ul class="reply-list">${(comment.replies || []).map((reply, ridx) => `
+            <li>
+              <div class="comment-meta">Anonymous &bull; ${formatDateUSCentral(reply.date)}
+                ${isAdmin() ? `<button class="delete-btn" title="Delete reply" data-comment="${comment.id}" data-reply="${reply.id}">Delete</button>` : ''}
+              </div>
+              <div class="comment-body">${formatText(reply.body)}</div>
+            </li>
+          `).join('')}</ul>
+        `;
+        const replyForm = document.createElement('form');
+        replyForm.className = 'reply-form';
+        replyForm.style.display = 'none';
+        replyForm.innerHTML = `
+          <textarea class="reply-textarea" placeholder="Write a reply..." required></textarea>
+          <button type="submit" class="reply-btn">Post Reply</button>
+        `;
+        li.appendChild(replyForm);
+        const replyBtn = li.querySelector('.reply-btn');
+        replyBtn.addEventListener('click', () => {
+          replyForm.style.display = replyForm.style.display === 'none' ? 'flex' : 'none';
+        });
+        replyForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const replyText = replyForm.querySelector('.reply-textarea').value.trim();
+          if (replyText.length) {
+            comment.replies = comment.replies || [];
+            comment.replies.push({
+              id: Date.now() + Math.random(),
+              body: replyText,
+              date: new Date().toISOString()
+            });
+            saveComments(comments);
+            renderComments();
+          }
+        });
+        li.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (btn.hasAttribute('data-reply')) {
+              const cId = btn.getAttribute('data-comment');
+              const rId = btn.getAttribute('data-reply');
+              const cIdx = comments.findIndex(c => c.id == cId);
+              if (cIdx > -1) {
+                comments[cIdx].replies = comments[cIdx].replies.filter(r => r.id != rId);
+                saveComments(comments);
+                renderComments();
+              }
+            } else {
+              const id = btn.getAttribute('data-id');
+              const idx = comments.findIndex(c => c.id == id);
+              if (idx > -1) {
+                comments.splice(idx, 1);
+                saveComments(comments);
+                if ((comments.length % COMMENTS_PER_PAGE === 0) && currentPage > 1) setPage(currentPage-1);
+                else renderComments();
+              }
+            }
+          });
+        });
+        commentList.appendChild(li);
+      });
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+      if (totalPages > 1) {
+        const olderBtn = document.createElement('button');
+        olderBtn.className = 'pagination-btn';
+        olderBtn.textContent = '← Older';
+        olderBtn.disabled = currentPage <= 1;
+        olderBtn.onclick = () => setPage(currentPage - 1);
+        const newerBtn = document.createElement('button');
+        newerBtn.className = 'pagination-btn';
+        newerBtn.textContent = 'Newer →';
+        newerBtn.disabled = currentPage >= totalPages;
+        newerBtn.onclick = () => setPage(currentPage + 1);
+        const pageInfo = document.createElement('span');
+        pageInfo.textContent = `Page ${totalPages-currentPage+1} of ${totalPages}`;
+        pagination.appendChild(olderBtn);
+        pagination.appendChild(pageInfo);
+        pagination.appendChild(newerBtn);
+      }
+    }
     // --- POST COMMENT ---
     document.getElementById('commentForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      if (!captchaAnswered && !isAdmin()) {
-        checkCaptcha(function(valid) {
-          if (!valid) return;
-          postComment();
-        });
-      } else {
+      if (window.disableCaptcha || isAdmin()) {
         postComment();
+      } else {
+        // Get reCAPTCHA token
+        var recaptchaToken = grecaptcha.getResponse();
+        if (!recaptchaToken) {
+          document.getElementById('captchaError').textContent = "Please complete the reCAPTCHA.";
+          return;
+        }
+        // Validate with backend
+        fetch('recaptcha-verify.php', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: 'g-recaptcha-response=' + encodeURIComponent(recaptchaToken)
+        })
+        .then(r=>r.json())
+        .then(data=>{
+          if (data.success) {
+            document.getElementById('captchaError').textContent = '';
+            postComment();
+            grecaptcha.reset();
+          } else {
+            document.getElementById('captchaError').textContent = "Captcha failed. Try again.";
+            grecaptcha.reset();
+          }
+        })
+        .catch(()=>{
+          document.getElementById('captchaError').textContent = "Captcha error. Please reload.";
+          grecaptcha.reset();
+        });
       }
     });
-
     function postComment() {
       const text = document.getElementById('commentText').value.trim();
       if (text.length) {
@@ -326,17 +453,12 @@
         renderComments();
       }
     }
-
-    // --- INIT ---
     renderComments();
-    setupCaptcha();
-
     document.addEventListener('click', function(e) {
       if (e.target.classList.contains('spoiler')) {
         e.target.classList.add('revealed');
       }
     });
-    // ...rest of your JS unchanged from previous answer...
   </script>
 </body>
 </html>
