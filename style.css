@@ -1,9 +1,3 @@
-/* Apply gradient to the full viewport */
-html {
-  background: linear-gradient(180deg, #222d3a 0%, #101820 100%);
-  min-height: 100%;
-  height: 100%;
-}
 
 
 /* --- Root & body: ensure full-height and map gradient to viewport --- */
@@ -13,17 +7,28 @@ html, body {
   padding: 0;
 }
 
-/* Move the gradient to the body and fix it to the viewport.
-   This maps the gradient to the viewport and prevents odd stretching. */
+/* Put the gradient in a fixed pseudo element so it maps exactly to the viewport */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;              /* top, right, bottom, left = 0 */
+  z-index: 0;            /* bottom-most visible layer */
+  background: linear-gradient(180deg, #222d3a 0%, #101820 100%);
+  background-size: cover;
+  background-attachment: fixed;
+  pointer-events: none;
+}
+
 body {
-  background: linear-gradient(180deg, #222d3a 0%, #101820 100%) no-repeat fixed;
-  background-size: cover;      /* ensures full coverage */
+  position: relative; /* so ::before stacking works */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color: #f8f8f8;
+  background: transparent; /* gradient now handled by ::before */
 }
+
 
 /* --- Infinity background: put it above the page background but under content --- */
 .infinity-bg {
