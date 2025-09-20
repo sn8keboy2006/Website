@@ -387,12 +387,12 @@
       if (totalPages > 1) {
         const olderBtn = document.createElement('button');
         olderBtn.className = 'pagination-btn';
-        olderBtn.textContent = '← Older';
+        olderBtn.textContent = '← Newer';
         olderBtn.disabled = currentPage <= 1;
         olderBtn.onclick = () => setPage(currentPage - 1);
         const newerBtn = document.createElement('button');
         newerBtn.className = 'pagination-btn';
-        newerBtn.textContent = 'Newer →';
+        newerBtn.textContent = 'Older →';
         newerBtn.disabled = currentPage >= totalPages;
         newerBtn.onclick = () => setPage(currentPage + 1);
         const pageInfo = document.createElement('span');
