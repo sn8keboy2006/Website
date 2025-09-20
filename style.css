@@ -29,6 +29,10 @@ body {
   background: transparent; /* gradient now handled by ::before */
 }
 
+/* Give the page a little extra scroll space so dropdowns aren't cut off */
+body {
+  min-height: 120vh; /* instead of 100vh */
+}
 
 /* --- Infinity background: put it above the page background but under content --- */
 .infinity-bg {
