@@ -199,14 +199,16 @@ footer {
   margin-bottom: 2em;
 }
 
-/* Manifesto Button and Share button in hero */
+/* Manifesto + Share buttons inside hero */
 .hero-actions {
   display: flex;
   gap: 1.2rem;
   margin-top: 1rem;
   justify-content: center;
 }
-.manifesto-btn, .share-btn {
+
+.manifesto-btn,
+.share-btn {
   background: #353c48;
   color: #bcd2e8;
   border: none;
@@ -220,70 +222,92 @@ footer {
   margin: 0 0.2em;
   outline: none;
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
-.manifesto-btn:hover, .share-btn:hover {
+
+.manifesto-btn:hover,
+.share-btn:hover {
   background: #bcd2e8;
   color: #232a35;
   transform: scale(1.08);
 }
+
 .share-btn:active {
   background: #294876;
   color: #f8f8f8;
 }
 
+/* Special override to give Share its blue Reddit-ish look */
 .share-btn {
   background: #3b5a92;
   color: #fff;
-  border: none;
   border-radius: 6px;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: background 0.2s ease;
+  padding: 0.8rem 1.4rem;
+  font-weight: 600;
 }
 
 .share-btn:hover {
   background: #4466a8;
+  color: #fff;
+}
+
+/* Wrapper to contain button + dropdown */
+.share-wrapper {
+  position: relative;
+  display: inline-block;
 }
 
 /* Dropdown menu */
 .share-menu {
   display: none;
   position: absolute;
-  top: 110%;
+  top: 115%;
   left: 0;
-  background: #222d3a;
-  border: 1px solid #444;
+  background: #1a1a1a;
+  border: 1px solid #333;
   border-radius: 8px;
-  padding: 0.5rem;
-  min-width: 140px;
-  z-index: 10;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  padding: 6px 0;
+  min-width: 180px;
+  z-index: 20;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
-/* Links and buttons inside dropdown */
-.share-menu a,
-.share-menu button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 6px 10px;
-  color: #f8f8f8;
+/* Share menu items */
+.share-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #eee;
+  text-decoration: none;
   background: transparent;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  text-decoration: none;
-  transition: background 0.2s ease;
+  width: 100%;
+  text-align: left;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-/* Hover/active states for menu items */
-.share-menu a:hover,
-.share-menu button:hover {
-  background: #294876;
+.share-item i {
+  font-size: 16px;
+  width: 18px;
+  text-align: center;
+}
+
+/* Hover states (Reddit-style accents) */
+.share-item:hover {
+  background: #2a2a2a;
   color: #fff;
 }
+
+.share-item.fb:hover { color: #1877F2; }
+.share-item.tw:hover { color: #1DA1F2; }
+.share-item.tb:hover { color: #35465C; }
+.share-item.copy:hover { color: #00c853; }
 
 
 /* Headings */
