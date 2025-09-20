@@ -1,8 +1,9 @@
 /* Apply gradient to the full viewport */
 html {
-  background: linear-gradient(135deg, #222d3a 0%, #181818 100%);
-  height: 100%;
+  background: #101820; /* or use the vertical gradient: linear-gradient(180deg, #222d3a 0%, #101820 100%); */
+  min-height: 100%;
 }
+
 
 /* Body is the flex container for layout */
 body {
