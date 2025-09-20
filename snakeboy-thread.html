@@ -31,7 +31,7 @@
       color: #f8f8f8;
       font-family: inherit;
     }
-    .comment-btn, .reply-btn {
+    .comment-btn, .reply-btn, .delete-btn {
       align-self: flex-end;
       background: #353c48;
       color: #bcd2e8;
@@ -41,10 +41,22 @@
       font-weight: 700;
       cursor: pointer;
       transition: background 0.2s, color 0.18s;
+      margin-left: 0.5em;
     }
-    .comment-btn:hover, .reply-btn:hover {
+    .comment-btn:hover, .reply-btn:hover, .delete-btn:hover {
       background: #bcd2e8;
       color: #232a35;
+    }
+    .delete-btn {
+      background: #a83232;
+      color: #fff;
+      font-size: 0.95em;
+      padding: 0.3em 0.8em;
+      margin: 0.2em;
+    }
+    .delete-btn:hover {
+      background: #e54d4d;
+      color: #fff;
     }
     .comment-list {
       list-style: none;
@@ -84,6 +96,79 @@
       margin-bottom: 0.6em;
       padding-left: 2em;
     }
+    .spoiler {
+      background: #bcd2e8;
+      color: #bcd2e8;
+      border-radius: 4px;
+      padding: 0.1em 0.3em;
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+      font-weight: bold;
+    }
+    .spoiler.revealed {
+      color: #232a35;
+      background: #f8f8f8;
+    }
+    .preview-box {
+      background: #181818;
+      color: #f8f8f8;
+      border: 1px solid #353c48;
+      border-radius: 8px;
+      padding: 0.7em;
+      margin-bottom: 1em;
+      font-size: 1em;
+      min-height: 2.5em;
+    }
+    .pagination {
+      display: flex;
+      gap: 1em;
+      justify-content: center;
+      margin: 2em 0 0 0;
+    }
+    .pagination-btn {
+      background: #353c48;
+      color: #bcd2e8;
+      border: none;
+      border-radius: 8px;
+      padding: 0.3em 1.2em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, color 0.18s;
+    }
+    .pagination-btn:disabled {
+      background: #222d3a;
+      color: #888;
+      cursor: not-allowed;
+    }
+    .pagination-btn:hover:not(:disabled) {
+      background: #bcd2e8;
+      color: #232a35;
+    }
+    .captcha-row {
+      display: flex;
+      align-items: center;
+      gap: 1em;
+      margin-bottom: 1em;
+    }
+    .captcha-label {
+      color: #bcd2e8;
+      font-weight: 700;
+      font-size: 1em;
+    }
+    .captcha-input {
+      border-radius: 6px;
+      border: 1px solid #353c48;
+      padding: 0.3em 0.7em;
+      font-size: 1em;
+      background: #181818;
+      color: #f8f8f8;
+      width: 60px;
+    }
+    .captcha-error {
+      color: #e54d4d;
+      font-size: 0.98em;
+      margin-top: 0.3em;
+    }
   </style>
 </head>
 <body>
@@ -97,20 +182,67 @@
     <h1>Snakeboy's Posts</h1>
     <section class="comments-section">
       <form id="commentForm" class="comment-form">
-        <textarea id="commentText" class="comment-textarea" placeholder="Share your thoughts or reply to Snakeboy..." required></textarea>
+        <textarea id="commentText" class="comment-textarea" placeholder="Share your thoughts or reply to Snakeboy...&#10;Formatting: *italic* **bold** [spoiler]hidden text[/spoiler]" required></textarea>
+        <div class="preview-box" id="commentPreview"></div>
+        <div id="captchaRow" class="captcha-row" style="display:none;">
+          <span class="captcha-label" id="captchaLabel"></span>
+          <input type="text" id="captchaInput" class="captcha-input" autocomplete="off" />
+        </div>
+        <div id="captchaError" class="captcha-error"></div>
         <button type="submit" class="comment-btn">Post Comment</button>
       </form>
       <ul id="commentList" class="comment-list"></ul>
+      <div class="pagination" id="pagination"></div>
     </section>
   </main>
   <footer>
     &copy; 2025 MainPhreaker
   </footer>
   <script>
+    // --- CONFIG ---
+    const COMMENTS_PER_PAGE = 20;
+    const ADMIN_USER = 'sn8keboy2006';
+
+    // --- ADMIN DETECTION ---
+    function isAdmin() {
+      if (window.isBackendAdmin === true) return true;
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('admin') === ADMIN_USER) return true;
+      return false;
+    }
+
+    // --- CAPTCHA ---
+    let captchaAnswered = sessionStorage.getItem('snakeboyCaptchaDone') === 'true';
+    let captchaValue = null;
+    function setupCaptcha() {
+      if (isAdmin()) return; // admin never gets captcha
+      if (captchaAnswered) return; // already passed
+      const a = Math.floor(Math.random()*10)+1;
+      const b = Math.floor(Math.random()*10)+1;
+      captchaValue = a + b;
+      document.getElementById('captchaLabel').textContent = `What is ${a} + ${b}?`;
+      document.getElementById('captchaRow').style.display = 'flex';
+      document.getElementById('captchaInput').value = '';
+      document.getElementById('captchaError').textContent = '';
+    }
+    function checkCaptcha() {
+      if (isAdmin()) return true;
+      if (captchaAnswered) return true;
+      const input = document.getElementById('captchaInput').value.trim();
+      if (parseInt(input,10) === captchaValue) {
+        captchaAnswered = true;
+        sessionStorage.setItem('snakeboyCaptchaDone','true');
+        document.getElementById('captchaRow').style.display = 'none';
+        document.getElementById('captchaError').textContent = '';
+        return true;
+      } else {
+        document.getElementById('captchaError').textContent = "Incorrect answer. Please try again.";
+        return false;
+      }
+    }
+
     // --- DATA ---
-    // Each comment: { id, body, date, replies: [ {id, body, date} ] }
     function loadComments() {
-      // If no comments, inject example
       let comments = JSON.parse(localStorage.getItem('snakeboyThreadComments') || '[]');
       if (!comments || comments.length === 0) {
         comments = [
@@ -134,9 +266,54 @@
     function saveComments(comments) {
       localStorage.setItem('snakeboyThreadComments', JSON.stringify(comments));
     }
-    function formatDate(dt) {
+
+    // --- PAGINATION ---
+    let currentPage = 1;
+    function setPage(page) {
+      currentPage = page;
+      renderComments();
+    }
+    function getTotalPages(comments) {
+      return Math.max(1, Math.ceil(comments.length / COMMENTS_PER_PAGE));
+    }
+
+    // --- DATE UTILS ---
+    function formatDateUSCentral(dt) {
       const date = new Date(dt);
-      return date.toLocaleString();
+      // Central Time offset
+      let offset = -6;
+      // DST check
+      const jan = new Date(date.getFullYear(), 0, 1);
+      const jul = new Date(date.getFullYear(), 6, 1);
+      const stdTimezoneOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+      if (date.getTimezoneOffset() < stdTimezoneOffset) offset = -5;
+      let central = new Date(date.getTime() + (offset * 60 * 60 * 1000));
+      return central.toLocaleDateString('en-US', {year: 'numeric', month: '2-digit', day: '2-digit'});
+    }
+
+    // --- FORMATTING ---
+    function escapeHTML(str) {
+      return str.replace(/[&<>"']/g, function(m) {
+        return ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        })[m];
+      });
+    }
+    function formatText(str) {
+      str = escapeHTML(str);
+      // [spoiler]text[/spoiler]
+      str = str.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/g, function(_, spoilerText) {
+        return `<span class="spoiler" onclick="this.classList.add('revealed');">${escapeHTML(spoilerText)}</span>`;
+      });
+      // **bold**
+      str = str.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
+      // *italic*
+      str = str.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+      return str;
     }
 
     // --- RENDER ---
@@ -144,17 +321,28 @@
       const comments = loadComments();
       const commentList = document.getElementById('commentList');
       commentList.innerHTML = '';
-      comments.forEach(comment => {
+      // Pagination
+      const totalPages = getTotalPages(comments);
+      if (currentPage > totalPages) currentPage = totalPages;
+      const startIdx = comments.length - (currentPage * COMMENTS_PER_PAGE);
+      const endIdx = comments.length - ((currentPage-1) * COMMENTS_PER_PAGE);
+      const pageComments = comments.slice(Math.max(0, startIdx), endIdx);
+
+      pageComments.forEach((comment, idx) => {
         const li = document.createElement('li');
         li.className = 'comment';
         li.innerHTML = `
-          <div class="comment-meta">Anonymous &bull; ${formatDate(comment.date)}</div>
-          <div class="comment-body">${escapeHTML(comment.body)}</div>
+          <div class="comment-meta">Anonymous &bull; ${formatDateUSCentral(comment.date)}
+            ${isAdmin() ? `<button class="delete-btn" title="Delete comment" data-id="${comment.id}">Delete</button>` : ''}
+          </div>
+          <div class="comment-body">${formatText(comment.body)}</div>
           <button class="reply-btn" data-id="${comment.id}">Reply</button>
-          <ul class="reply-list">${(comment.replies || []).map(reply => `
+          <ul class="reply-list">${(comment.replies || []).map((reply, ridx) => `
             <li>
-              <div class="comment-meta">Anonymous &bull; ${formatDate(reply.date)}</div>
-              <div class="comment-body">${escapeHTML(reply.body)}</div>
+              <div class="comment-meta">Anonymous &bull; ${formatDateUSCentral(reply.date)}
+                ${isAdmin() ? `<button class="delete-btn" title="Delete reply" data-comment="${comment.id}" data-reply="${reply.id}">Delete</button>` : ''}
+              </div>
+              <div class="comment-body">${formatText(reply.body)}</div>
             </li>
           `).join('')}</ul>
         `;
@@ -163,7 +351,8 @@
         replyForm.className = 'reply-form';
         replyForm.style.display = 'none';
         replyForm.innerHTML = `
-          <textarea class="reply-textarea" placeholder="Write a reply..." required></textarea>
+          <textarea class="reply-textarea" placeholder="Write a reply... Formatting: *italic* **bold** [spoiler]hidden text[/spoiler]" required></textarea>
+          <div class="preview-box"></div>
           <button type="submit" class="reply-btn">Post Reply</button>
         `;
         li.appendChild(replyForm);
@@ -174,10 +363,17 @@
           replyForm.style.display = replyForm.style.display === 'none' ? 'flex' : 'none';
         });
 
+        // Live preview for reply
+        const replyTextarea = replyForm.querySelector('.reply-textarea');
+        const replyPreview = replyForm.querySelector('.preview-box');
+        replyTextarea.addEventListener('input', function() {
+          replyPreview.innerHTML = formatText(replyTextarea.value);
+        });
+
         // Reply submit logic
         replyForm.addEventListener('submit', function(e) {
           e.preventDefault();
-          const replyText = replyForm.querySelector('.reply-textarea').value.trim();
+          const replyText = replyTextarea.value.trim();
           if (replyText.length) {
             comment.replies = comment.replies || [];
             comment.replies.push({
@@ -190,13 +386,71 @@
           }
         });
 
+        // Delete comment/reply logic
+        li.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (btn.hasAttribute('data-reply')) {
+              // Delete reply
+              const cId = btn.getAttribute('data-comment');
+              const rId = btn.getAttribute('data-reply');
+              const cIdx = comments.findIndex(c => c.id == cId);
+              if (cIdx > -1) {
+                comments[cIdx].replies = comments[cIdx].replies.filter(r => r.id != rId);
+                saveComments(comments);
+                renderComments();
+              }
+            } else {
+              // Delete comment
+              const id = btn.getAttribute('data-id');
+              const idx = comments.findIndex(c => c.id == id);
+              if (idx > -1) {
+                comments.splice(idx, 1);
+                saveComments(comments);
+                // If we deleted the last comment on a page, go to previous
+                if ((comments.length % COMMENTS_PER_PAGE === 0) && currentPage > 1) setPage(currentPage-1);
+                else renderComments();
+              }
+            }
+          });
+        });
+
         commentList.appendChild(li);
       });
+
+      // --- Pagination Controls ---
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+      if (totalPages > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'pagination-btn';
+        prevBtn.textContent = '← Older';
+        prevBtn.disabled = currentPage >= totalPages;
+        prevBtn.onclick = () => setPage(currentPage + 1);
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'pagination-btn';
+        nextBtn.textContent = 'Newer →';
+        nextBtn.disabled = currentPage <= 1;
+        nextBtn.onclick = () => setPage(currentPage - 1);
+
+        const pageInfo = document.createElement('span');
+        pageInfo.textContent = `Page ${totalPages-currentPage+1} of ${totalPages}`;
+
+        pagination.appendChild(prevBtn);
+        pagination.appendChild(pageInfo);
+        pagination.appendChild(nextBtn);
+      }
     }
 
     // --- POST COMMENT ---
     document.getElementById('commentForm').addEventListener('submit', function(e) {
       e.preventDefault();
+      if (!captchaAnswered && !isAdmin()) {
+        if (!checkCaptcha()) {
+          return;
+        }
+      }
       const text = document.getElementById('commentText').value.trim();
       if (text.length) {
         const comments = loadComments();
@@ -208,25 +462,27 @@
         });
         saveComments(comments);
         document.getElementById('commentText').value = '';
+        document.getElementById('commentPreview').innerHTML = '';
+        currentPage = 1;
         renderComments();
       }
     });
 
-    // --- Escape HTML for safety ---
-    function escapeHTML(str) {
-      return str.replace(/[&<>"']/g, function(m) {
-        return ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;'
-        })[m];
-      });
-    }
+    // --- Live Preview main comment ---
+    document.getElementById('commentText').addEventListener('input', function() {
+      document.getElementById('commentPreview').innerHTML = formatText(this.value);
+    });
 
     // --- INIT ---
     renderComments();
+    setupCaptcha();
+
+    // --- Spoiler Reveal Handler (delegated) ---
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('spoiler')) {
+        e.target.classList.add('revealed');
+      }
+    });
   </script>
 </body>
 </html>
