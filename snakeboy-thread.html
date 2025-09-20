@@ -5,6 +5,86 @@
   <title>Snakeboy's Thread</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    .comments-section {
+      max-width: 700px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #232a35;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(34,45,58,0.13);
+    }
+    .comment-form, .reply-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      margin-bottom: 2rem;
+    }
+    .comment-textarea, .reply-textarea {
+      resize: vertical;
+      min-height: 50px;
+      font-size: 1em;
+      border-radius: 8px;
+      border: 1px solid #353c48;
+      padding: 0.7em;
+      background: #181818;
+      color: #f8f8f8;
+      font-family: inherit;
+    }
+    .comment-btn, .reply-btn {
+      align-self: flex-end;
+      background: #353c48;
+      color: #bcd2e8;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, color 0.18s;
+    }
+    .comment-btn:hover, .reply-btn:hover {
+      background: #bcd2e8;
+      color: #232a35;
+    }
+    .comment-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .comment {
+      margin-bottom: 1.6rem;
+      padding-bottom: 0.9rem;
+      border-bottom: 1px solid #353c48;
+      position: relative;
+    }
+    .comment-meta {
+      font-size: 0.93em;
+      color: #bcd2e8;
+      margin-bottom: 0.2em;
+      font-style: italic;
+    }
+    .comment-body {
+      margin-bottom: 0.5em;
+      white-space: pre-line;
+      color: #f8f8f8;
+    }
+    .reply-btn {
+      font-size: 0.95em;
+      padding: 0.3em 1em;
+      margin-top: 0.3em;
+      margin-bottom: 0.3em;
+    }
+    .reply-list {
+      list-style: none;
+      padding: 0 0 0 2em;
+      margin: 0.5em 0 0 0;
+    }
+    .reply-form {
+      margin-top: 0.6em;
+      margin-bottom: 0.6em;
+      padding-left: 2em;
+    }
+  </style>
 </head>
 <body>
   <nav>
@@ -15,14 +95,138 @@
   </nav>
   <main>
     <h1>Snakeboy's Posts</h1>
-    <!-- Add thread content or comments here -->
-    <p>Coming soon: Snakeboy's thoughts and posts.</p>
+    <section class="comments-section">
+      <form id="commentForm" class="comment-form">
+        <textarea id="commentText" class="comment-textarea" placeholder="Share your thoughts or reply to Snakeboy..." required></textarea>
+        <button type="submit" class="comment-btn">Post Comment</button>
+      </form>
+      <ul id="commentList" class="comment-list"></ul>
+    </section>
   </main>
   <footer>
     &copy; 2025 MainPhreaker
   </footer>
-  <div class="view-counter-tab">
-    Views: <span id="view-count">1522</span>
-  </div>
+  <script>
+    // --- DATA ---
+    // Each comment: { id, body, date, replies: [ {id, body, date} ] }
+    function loadComments() {
+      // If no comments, inject example
+      let comments = JSON.parse(localStorage.getItem('snakeboyThreadComments') || '[]');
+      if (!comments || comments.length === 0) {
+        comments = [
+          {
+            id: Date.now(),
+            body: "I had the dream again. The one where the tangerines talk back. Does anyone else get that?",
+            date: "2025-09-20T07:00:00.000Z",
+            replies: [
+              {
+                id: Date.now() + 1,
+                body: "Same here. Except mine were oranges. Wonder what it means...",
+                date: "2025-09-20T12:00:00.000Z"
+              }
+            ]
+          }
+        ];
+        localStorage.setItem('snakeboyThreadComments', JSON.stringify(comments));
+      }
+      return comments;
+    }
+    function saveComments(comments) {
+      localStorage.setItem('snakeboyThreadComments', JSON.stringify(comments));
+    }
+    function formatDate(dt) {
+      const date = new Date(dt);
+      return date.toLocaleString();
+    }
+
+    // --- RENDER ---
+    function renderComments() {
+      const comments = loadComments();
+      const commentList = document.getElementById('commentList');
+      commentList.innerHTML = '';
+      comments.forEach(comment => {
+        const li = document.createElement('li');
+        li.className = 'comment';
+        li.innerHTML = `
+          <div class="comment-meta">Anonymous &bull; ${formatDate(comment.date)}</div>
+          <div class="comment-body">${escapeHTML(comment.body)}</div>
+          <button class="reply-btn" data-id="${comment.id}">Reply</button>
+          <ul class="reply-list">${(comment.replies || []).map(reply => `
+            <li>
+              <div class="comment-meta">Anonymous &bull; ${formatDate(reply.date)}</div>
+              <div class="comment-body">${escapeHTML(reply.body)}</div>
+            </li>
+          `).join('')}</ul>
+        `;
+        // Reply form (hidden by default)
+        const replyForm = document.createElement('form');
+        replyForm.className = 'reply-form';
+        replyForm.style.display = 'none';
+        replyForm.innerHTML = `
+          <textarea class="reply-textarea" placeholder="Write a reply..." required></textarea>
+          <button type="submit" class="reply-btn">Post Reply</button>
+        `;
+        li.appendChild(replyForm);
+
+        // Reply button logic
+        const replyBtn = li.querySelector('.reply-btn');
+        replyBtn.addEventListener('click', () => {
+          replyForm.style.display = replyForm.style.display === 'none' ? 'flex' : 'none';
+        });
+
+        // Reply submit logic
+        replyForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const replyText = replyForm.querySelector('.reply-textarea').value.trim();
+          if (replyText.length) {
+            comment.replies = comment.replies || [];
+            comment.replies.push({
+              id: Date.now() + Math.random(),
+              body: replyText,
+              date: new Date().toISOString()
+            });
+            saveComments(comments);
+            renderComments();
+          }
+        });
+
+        commentList.appendChild(li);
+      });
+    }
+
+    // --- POST COMMENT ---
+    document.getElementById('commentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const text = document.getElementById('commentText').value.trim();
+      if (text.length) {
+        const comments = loadComments();
+        comments.push({
+          id: Date.now() + Math.random(),
+          body: text,
+          date: new Date().toISOString(),
+          replies: []
+        });
+        saveComments(comments);
+        document.getElementById('commentText').value = '';
+        renderComments();
+      }
+    });
+
+    // --- Escape HTML for safety ---
+    function escapeHTML(str) {
+      return str.replace(/[&<>"']/g, function(m) {
+        return ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        })[m];
+      });
+    }
+
+    // --- INIT ---
+    renderComments();
+  </script>
 </body>
 </html>
