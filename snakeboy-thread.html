@@ -6,13 +6,24 @@
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap" rel="stylesheet">
   <style>
+    html, body {
+      background: #232a35 !important; /* static dark background */
+      min-height: 100vh;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
     .comments-section {
       max-width: 700px;
+      width: 100%;
+      min-width: 320px;
       margin: 2rem auto;
       padding: 1.5rem;
       background: #232a35;
       border-radius: 12px;
       box-shadow: 0 2px 16px rgba(34,45,58,0.13);
+      box-sizing: border-box;
+      overflow-x: auto;
     }
     .comment-form, .reply-form {
       display: flex;
@@ -30,6 +41,8 @@
       background: #181818;
       color: #f8f8f8;
       font-family: inherit;
+      width: 100%;
+      box-sizing: border-box;
     }
     .comment-btn, .reply-btn, .delete-btn {
       align-self: flex-end;
@@ -62,12 +75,15 @@
       list-style: none;
       padding: 0;
       margin: 0;
+      width: 100%;
     }
     .comment {
       margin-bottom: 1.6rem;
       padding-bottom: 0.9rem;
       border-bottom: 1px solid #353c48;
       position: relative;
+      width: 100%;
+      box-sizing: border-box;
     }
     .comment-meta {
       font-size: 0.93em;
@@ -79,6 +95,7 @@
       margin-bottom: 0.5em;
       white-space: pre-line;
       color: #f8f8f8;
+      width: 100%;
     }
     .reply-btn {
       font-size: 0.95em;
@@ -90,11 +107,15 @@
       list-style: none;
       padding: 0 0 0 2em;
       margin: 0.5em 0 0 0;
+      width: 100%;
+      box-sizing: border-box;
     }
     .reply-form {
       margin-top: 0.6em;
       margin-bottom: 0.6em;
       padding-left: 2em;
+      width: 100%;
+      box-sizing: border-box;
     }
     .spoiler {
       background: #bcd2e8;
@@ -118,12 +139,15 @@
       margin-bottom: 1em;
       font-size: 1em;
       min-height: 2.5em;
+      width: 100%;
+      box-sizing: border-box;
     }
     .pagination {
       display: flex;
       gap: 1em;
       justify-content: center;
       margin: 2em 0 0 0;
+      width: 100%;
     }
     .pagination-btn {
       background: #353c48;
@@ -168,6 +192,15 @@
       color: #e54d4d;
       font-size: 0.98em;
       margin-top: 0.3em;
+    }
+    @media (max-width: 900px) {
+      .comments-section {
+        max-width: 95vw;
+        width: 95vw;
+        min-width: unset;
+        margin: 5vw auto;
+        padding: 1vw;
+      }
     }
   </style>
 </head>
@@ -280,9 +313,7 @@
     // --- DATE UTILS ---
     function formatDateUSCentral(dt) {
       const date = new Date(dt);
-      // Central Time offset
       let offset = -6;
-      // DST check
       const jan = new Date(date.getFullYear(), 0, 1);
       const jul = new Date(date.getFullYear(), 6, 1);
       const stdTimezoneOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
@@ -321,7 +352,6 @@
       const comments = loadComments();
       const commentList = document.getElementById('commentList');
       commentList.innerHTML = '';
-      // Pagination
       const totalPages = getTotalPages(comments);
       if (currentPage > totalPages) currentPage = totalPages;
       const startIdx = comments.length - (currentPage * COMMENTS_PER_PAGE);
@@ -391,7 +421,6 @@
           btn.addEventListener('click', function(e) {
             e.stopPropagation();
             if (btn.hasAttribute('data-reply')) {
-              // Delete reply
               const cId = btn.getAttribute('data-comment');
               const rId = btn.getAttribute('data-reply');
               const cIdx = comments.findIndex(c => c.id == cId);
@@ -401,13 +430,11 @@
                 renderComments();
               }
             } else {
-              // Delete comment
               const id = btn.getAttribute('data-id');
               const idx = comments.findIndex(c => c.id == id);
               if (idx > -1) {
                 comments.splice(idx, 1);
                 saveComments(comments);
-                // If we deleted the last comment on a page, go to previous
                 if ((comments.length % COMMENTS_PER_PAGE === 0) && currentPage > 1) setPage(currentPage-1);
                 else renderComments();
               }
@@ -418,28 +445,30 @@
         commentList.appendChild(li);
       });
 
-      // --- Pagination Controls ---
+      // --- Pagination Controls (SWAPPED) ---
       const pagination = document.getElementById('pagination');
       pagination.innerHTML = '';
       if (totalPages > 1) {
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'pagination-btn';
-        prevBtn.textContent = '← Older';
-        prevBtn.disabled = currentPage >= totalPages;
-        prevBtn.onclick = () => setPage(currentPage + 1);
+        // "Older" (lower page number, newer comments)
+        const olderBtn = document.createElement('button');
+        olderBtn.className = 'pagination-btn';
+        olderBtn.textContent = '← Older';
+        olderBtn.disabled = currentPage <= 1;
+        olderBtn.onclick = () => setPage(currentPage - 1);
 
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'pagination-btn';
-        nextBtn.textContent = 'Newer →';
-        nextBtn.disabled = currentPage <= 1;
-        nextBtn.onclick = () => setPage(currentPage - 1);
+        // "Newer" (higher page number, older comments)
+        const newerBtn = document.createElement('button');
+        newerBtn.className = 'pagination-btn';
+        newerBtn.textContent = 'Newer →';
+        newerBtn.disabled = currentPage >= totalPages;
+        newerBtn.onclick = () => setPage(currentPage + 1);
 
         const pageInfo = document.createElement('span');
         pageInfo.textContent = `Page ${totalPages-currentPage+1} of ${totalPages}`;
 
-        pagination.appendChild(prevBtn);
+        pagination.appendChild(olderBtn);
         pagination.appendChild(pageInfo);
-        pagination.appendChild(nextBtn);
+        pagination.appendChild(newerBtn);
       }
     }
 
