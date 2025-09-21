@@ -21,7 +21,6 @@ body::before {
 
 body {
   position: relative; /* so ::before stacking works */
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
