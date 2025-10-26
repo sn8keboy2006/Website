@@ -39,12 +39,30 @@
     border-radius: 6px;
     color: #fff;
     z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bookmark-btn {
+    background: #2a8cff;
+    border: none;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .bookmark-btn:hover {
+    background: #1c6cd6;
   }
 </style>
 </head>
 <body>
 
-<div class="page-number" id="page-number">Page 1 / --</div>
+<div class="page-number" id="page-number">
+  Page 1 / -- 
+  <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">🔖</button>
+</div>
 <div id="pdf-container"></div>
 
 <script type="module">
@@ -54,6 +72,7 @@
   const PDF_URL = './Test_PDF.pdf';
   const container = document.getElementById('pdf-container');
   const pageNumberDisplay = document.getElementById('page-number');
+  const bookmarkBtn = document.getElementById('bookmark-btn');
 
   let pdfDoc = null;
   let canvases = [];
@@ -65,18 +84,19 @@
   }
 
   function updatePageNumberInView() {
-    const rect = container.getBoundingClientRect();
     const centerY = window.innerHeight / 2;
     let current = 1;
     for (const { pageNum, canvas } of canvases) {
-      const canvasRect = canvas.getBoundingClientRect();
-      const canvasCenter = canvasRect.top + canvasRect.height / 2;
-      if (Math.abs(canvasCenter - centerY) < canvasRect.height / 2) {
+      const rect = canvas.getBoundingClientRect();
+      const canvasCenter = rect.top + rect.height / 2;
+      if (Math.abs(canvasCenter - centerY) < rect.height / 2) {
         current = pageNum;
         break;
       }
     }
-    pageNumberDisplay.textContent = `Page ${current} / ${pdfDoc.numPages}`;
+    // Update text only
+    pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
+    // Update URL hash
     history.replaceState(null, '', `#page=${current}`);
   }
 
@@ -123,6 +143,19 @@
     if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 
+  // Bookmark button functionality
+  bookmarkBtn.addEventListener('click', () => {
+    const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
+    const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
+    // Copy to clipboard
+    navigator.clipboard.writeText(bookmarkURL).then(() => {
+      bookmarkBtn.textContent = '✅';
+      setTimeout(() => { bookmarkBtn.textContent = '🔖'; }, 1000);
+    }).catch(err => {
+      alert('Failed to copy link: ' + err);
+    });
+  });
+
   pdfjsLib.getDocument(PDF_URL).promise.then(pdf => {
     pdfDoc = pdf;
     renderAllPages();
@@ -134,4 +167,3 @@
 </script>
 </body>
 </html>
-
