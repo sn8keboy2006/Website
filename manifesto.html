@@ -159,14 +159,22 @@ function updatePageNumberInView() {
       }
     }
 
-    pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
+    // Update text
+    const textNode = pageNumberDisplay.childNodes[0];
+    if (textNode) {
+      textNode.nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
+    }
+    
+    // Update URL hash
     history.replaceState(null, '', `#page=${current}`);
 
-    // Fade-in logic
-    const page1 = canvases.find(c => c.pageNum === 1);
-    if (page1) {
-      const rect = page1.canvas.getBoundingClientRect();
-      if (rect.bottom <= 0) {
+    // Fade-in logic: check if page 1 is completely scrolled past
+    const page1Canvas = canvases[0];
+    if (page1Canvas && page1Canvas.canvas) {
+      const rect = page1Canvas.canvas.getBoundingClientRect();
+      const isPage1Scrolledpast = rect.bottom < 0;
+      
+      if (isPage1Scrolledpast) {
         pageNumberDisplay.classList.add('visible');
       } else {
         pageNumberDisplay.classList.remove('visible');
