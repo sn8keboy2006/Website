@@ -6,22 +6,25 @@
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
+  body { margin: 0; font-family: sans-serif; background: #121212; color: #fff; }
+  nav { position: fixed; top: 0; width: 100%; background: #232a35; padding: 1rem; z-index: 20; display: flex; gap: 1rem; }
+  nav a { color: #fff; text-decoration: none; font-weight: bold; }
+  main { margin-top: 60px; display: flex; justify-content: center; flex-direction: column; align-items: center; }
+
   #pdf-container {
-    width: 100%;
+    width: 95%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 2rem 0;
-    gap: 1.5rem;
     position: relative;
-    z-index: 1;
+    gap: 2rem;
   }
 
   canvas {
     box-shadow: 0 6px 20px rgba(0,0,0,0.6);
     border-radius: 12px;
     background: #232a35;
-    max-width: 90%;
+    width: 100%;
   }
 
   .textLayer {
@@ -30,7 +33,8 @@
     left: 0;
     pointer-events: auto;
     user-select: text;
-    color: transparent; /* makes text selectable but invisible */
+    color: transparent;
+    font-family: sans-serif;
   }
 
   .page-number {
@@ -43,7 +47,7 @@
     padding: 4px 10px;
     border-radius: 6px;
     color: #f8f8f8;
-    z-index: 10;
+    z-index: 30;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -51,9 +55,7 @@
     transition: opacity 0.5s ease-in-out;
   }
 
-  .page-number.visible {
-    opacity: 1;
-  }
+  .page-number.visible { opacity: 1; }
 
   .bookmark-btn {
     background: #3b5a92;
@@ -64,9 +66,8 @@
     cursor: pointer;
     font-size: 12px;
   }
-  .bookmark-btn:hover {
-    background: #4466a8;
-  }
+  .bookmark-btn:hover { background: #4466a8; }
+
 </style>
 </head>
 <body>
@@ -99,7 +100,7 @@ const bookmarkBtn = document.getElementById('bookmark-btn');
 
 let pdfDoc = null;
 let canvases = [];
-let scale = 1.25;
+let scale = 1.5; // higher scale = higher resolution
 
 function parseHashPage() {
   const match = location.hash.match(/page=(\d+)/i);
@@ -120,15 +121,12 @@ function updatePageNumberInView() {
   pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
   history.replaceState(null, '', `#page=${current}`);
 
-  // Fade-in logic: show after bottom of page 1 is scrolled past
+  // Fade-in after bottom of page 1
   const page1 = canvases.find(c => c.pageNum === 1);
   if (page1) {
     const rect = page1.canvas.getBoundingClientRect();
-    if (rect.bottom <= 0) {
-      pageNumberDisplay.classList.add('visible');
-    } else {
-      pageNumberDisplay.classList.remove('visible');
-    }
+    if (rect.bottom <= 0) pageNumberDisplay.classList.add('visible');
+    else pageNumberDisplay.classList.remove('visible');
   }
 }
 
@@ -144,7 +142,7 @@ async function renderAllPages() {
     const viewport = page.getViewport({ scale });
     const dpr = window.devicePixelRatio || 1;
 
-    // Render canvas
+    // Canvas
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width * dpr;
     canvas.height = viewport.height * dpr;
@@ -156,25 +154,33 @@ async function renderAllPages() {
     container.appendChild(canvas);
     canvases.push({ pageNum: i, canvas });
 
-    // Render text layer
-    const textContent = await page.getTextContent();
+    // Text layer
     const textLayerDiv = document.createElement('div');
     textLayerDiv.className = 'textLayer';
-    textLayerDiv.style.width = viewport.width + 'px';
-    textLayerDiv.style.height = viewport.height + 'px';
+    textLayerDiv.style.width = canvas.style.width;
+    textLayerDiv.style.height = canvas.style.height;
     textLayerDiv.style.top = canvas.offsetTop + 'px';
     textLayerDiv.style.left = canvas.offsetLeft + 'px';
     container.appendChild(textLayerDiv);
 
-    pdfjsLib.renderTextLayer({
-      textContent,
-      container: textLayerDiv,
-      viewport,
-      textDivs: []
+    const textContent = await page.getTextContent();
+    textContent.items.forEach(item => {
+      const span = document.createElement('span');
+      span.textContent = item.str;
+      // PDF coordinates: transform[4,5] = x,y
+      const [a, b, c, d, x, y] = item.transform;
+      const fontHeight = item.height || 12;
+      span.style.position = 'absolute';
+      span.style.left = x + 'px';
+      span.style.top = (viewport.height - y) + 'px'; // flip y-axis
+      span.style.fontSize = fontHeight + 'px';
+      span.style.whiteSpace = 'pre';
+      span.style.color = 'transparent';
+      textLayerDiv.appendChild(span);
     });
   }
 
-  // Scroll to start page if it's not page 1
+  // Scroll to start page
   if (startPage !== 1) {
     const targetCanvas = canvases.find(c => c.pageNum === startPage);
     if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
