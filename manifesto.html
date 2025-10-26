@@ -3,67 +3,77 @@
 <head>
 <meta charset="UTF-8">
 <title>Manifesto PDF Viewer</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
-  html, body {
-    height: 100%;
-    margin: 0;
-    background: #111;
-    color: #fff;
-    font-family: system-ui, sans-serif;
-    overflow: hidden;
-  }
+  /* PDF container styling */
   #pdf-container {
-    width: 100vw;
-    height: 100vh;
-    overflow-y: auto;
-    scroll-behavior: smooth;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: #000;
+    padding: 2rem 0;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1; /* above background gradient/infinity */
   }
+
   canvas {
-    margin: 10px 0;
     box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-    border-radius: 6px;
-    background: #111;
+    border-radius: 12px;
+    background: #232a35; /* match manifesto/bio card style */
+    max-width: 90%;
   }
+
   .page-number {
     position: fixed;
     top: 5px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 14px;
-    background: rgba(0,0,0,0.6);
+    background: rgba(35,42,53,0.8);
     padding: 4px 10px;
     border-radius: 6px;
-    color: #fff;
-    z-index: 100;
+    color: #f8f8f8;
+    z-index: 10;
     display: flex;
     align-items: center;
     gap: 8px;
   }
+
   .bookmark-btn {
-    background: #2a8cff;
+    background: #3b5a92;
     border: none;
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: 6px;
     color: #fff;
     cursor: pointer;
     font-size: 12px;
   }
   .bookmark-btn:hover {
-    background: #1c6cd6;
+    background: #4466a8;
   }
 </style>
 </head>
 <body>
+  <!-- Top navigation only -->
+  <nav>
+    <a href="about.html">About</a>
+    <a href="index.html">Manifesto</a>
+    <a href="threads.html">Threads</a>
+  </nav>
 
-<div class="page-number" id="page-number">
-  Page 1 / -- 
-  <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
-</div>
-<div id="pdf-container"></div>
+  <main>
+    <div class="page-number" id="page-number">
+      Page 1 / -- 
+      <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
+    </div>
+    <div id="pdf-container"></div>
+  </main>
+
+  <footer>
+    <span class="footer-copy">&copy; 2025 </span>
+  </footer>
 
 <script type="module">
   import * as pdfjsLib from './pdf.mjs';
@@ -94,9 +104,7 @@
         break;
       }
     }
-    // Update text only
     pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
-    // Update URL hash
     history.replaceState(null, '', `#page=${current}`);
   }
 
@@ -117,14 +125,10 @@
       canvases.push({ pageNum: i, canvas });
     }
 
-    // Scroll to start page if #page specified
     const targetCanvas = canvases.find(c => c.pageNum === startPage);
     if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
 
-    // Update page number as user scrolls
-    container.addEventListener('scroll', () => {
-      updatePageNumberInView();
-    });
+    container.addEventListener('scroll', () => updatePageNumberInView());
     updatePageNumberInView();
   }
 
@@ -143,17 +147,13 @@
     if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 
-  // Bookmark button functionality
   bookmarkBtn.addEventListener('click', () => {
     const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
     const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
-    // Copy to clipboard
     navigator.clipboard.writeText(bookmarkURL).then(() => {
       bookmarkBtn.textContent = 'Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.';
       setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 5000);
-    }).catch(err => {
-      alert('Failed to copy link: ' + err);
-    });
+    }).catch(err => alert('Failed to copy link: ' + err));
   });
 
   pdfjsLib.getDocument(PDF_URL).promise.then(pdf => {
@@ -163,8 +163,6 @@
     console.error('Failed to load PDF:', err);
     container.textContent = 'Error loading PDF. Make sure Test_PDF.pdf is in the same folder.';
   });
-
 </script>
 </body>
 </html>
-
