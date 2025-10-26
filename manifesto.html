@@ -35,18 +35,20 @@ main {
   align-items: center;
 }
 #pdf-container {
-  width: 95%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 2rem 0;
+  gap: 1.5rem;
   position: relative;
-  gap: 2rem;
+  z-index: 1;
 }
 .page-wrapper {
   position: relative;
-  width: 100%;
   display: flex;
   justify-content: center;
+  max-width: 90%;
 }
 canvas {
   box-shadow: 0 6px 20px rgba(0,0,0,0.6);
@@ -57,12 +59,12 @@ canvas {
 .textLayer {
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  bottom: 0;
   pointer-events: auto;
   user-select: text;
-  color: transparent;
-  font-family: sans-serif;
+  overflow: hidden;
 }
 .textLayer span {
   position: absolute;
@@ -80,7 +82,7 @@ canvas {
   padding: 4px 10px;
   border-radius: 6px;
   color: #f8f8f8;
-  z-index: 30;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -113,7 +115,7 @@ canvas {
 
 <main>
   <div class="page-number" id="page-number">
-    <span id="page-number-text">Page 1 / --</span>
+    Page 1 / -- 
     <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
   </div>
   <div id="pdf-container"></div>
@@ -130,62 +132,36 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
 const PDF_URL = './Test_PDF.pdf';
 const container = document.getElementById('pdf-container');
 const pageNumberDisplay = document.getElementById('page-number');
-const pageNumberText = document.getElementById('page-number-text');
 const bookmarkBtn = document.getElementById('bookmark-btn');
 
 let pdfDoc = null;
-let pageElements = new Map();
-let currentPage = 1;
-let visiblePages = new Set();
+let canvases = [];
+let scale = 1.25;
 
 function parseHashPage() {
   const match = location.hash.match(/page=(\d+)/i);
   return match ? parseInt(match[1], 10) : 1;
 }
 
-function updateCurrentPage() {
-  if (visiblePages.size === 0) return;
-  
-  // Find the most centered visible page
-  let mostCentered = null;
-  let smallestDistance = Infinity;
-  const viewportCenter = window.innerHeight / 2;
-  
-  visiblePages.forEach(pageNum => {
-    const wrapper = pageElements.get(pageNum);
-    if (wrapper) {
-      const rect = wrapper.getBoundingClientRect();
-      const pageCenter = rect.top + rect.height / 2;
-      const distance = Math.abs(pageCenter - viewportCenter);
-      
-      if (distance < smallestDistance) {
-        smallestDistance = distance;
-        mostCentered = pageNum;
-      }
+function updatePageNumberInView() {
+  const centerY = window.innerHeight / 2;
+  let current = 1;
+  for (const { pageNum, canvas } of canvases) {
+    const rect = canvas.getBoundingClientRect();
+    const canvasCenter = rect.top + rect.height / 2;
+    if (Math.abs(canvasCenter - centerY) < rect.height / 2) {
+      current = pageNum;
+      break;
     }
-  });
-  
-  if (mostCentered !== null && mostCentered !== currentPage) {
-    currentPage = mostCentered;
-    updateDisplay();
   }
-}
 
-function updateDisplay() {
-  if (!pdfDoc) return;
-  
-  pageNumberText.textContent = `Page ${currentPage} / ${pdfDoc.numPages}`;
-  
-  // Update URL hash
-  const newHash = `#page=${currentPage}`;
-  if (location.hash !== newHash) {
-    history.replaceState(null, '', newHash);
-  }
-  
-  // Show/hide page number indicator
-  const firstPage = pageElements.get(1);
-  if (firstPage) {
-    const rect = firstPage.getBoundingClientRect();
+  pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
+  history.replaceState(null, '', `#page=${current}`);
+
+  // Fade-in logic: show after bottom of page 1 is scrolled past
+  const page1 = canvases.find(c => c.pageNum === 1);
+  if (page1) {
+    const rect = page1.canvas.getBoundingClientRect();
     if (rect.bottom <= 0) {
       pageNumberDisplay.classList.add('visible');
     } else {
@@ -196,41 +172,20 @@ function updateDisplay() {
 
 async function renderAllPages() {
   container.innerHTML = '';
-  pageElements.clear();
+  canvases = [];
   const startPage = parseHashPage();
 
-  pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
-  
-  // Set up intersection observer
-  const observerOptions = {
-    root: null,
-    rootMargin: '-20% 0px -20% 0px',
-    threshold: 0
-  };
-  
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const pageNum = parseInt(entry.target.dataset.pageNum);
-      if (entry.isIntersecting) {
-        visiblePages.add(pageNum);
-      } else {
-        visiblePages.delete(pageNum);
-      }
-    });
-    updateCurrentPage();
-  }, observerOptions);
-
+  // Render all pages
   for (let i = 1; i <= pdfDoc.numPages; i++) {
     const page = await pdfDoc.getPage(i);
     const viewport = page.getViewport({ scale });
     const dpr = window.devicePixelRatio || 1;
-
-    // Create wrapper for canvas + text layer
+    
+    // Create wrapper
     const wrapper = document.createElement('div');
     wrapper.className = 'page-wrapper';
-    wrapper.dataset.pageNum = i;
-
-    // Canvas
+    
+    // Create canvas
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width * dpr;
     canvas.height = viewport.height * dpr;
@@ -241,13 +196,14 @@ async function renderAllPages() {
     await page.render({ canvasContext: ctx, viewport }).promise;
     
     wrapper.appendChild(canvas);
-
-    // Text layer overlay
+    canvases.push({ pageNum: i, canvas });
+    
+    // Create text layer
     const textLayerDiv = document.createElement('div');
     textLayerDiv.className = 'textLayer';
     textLayerDiv.style.width = viewport.width + 'px';
     textLayerDiv.style.height = viewport.height + 'px';
-
+    
     const textContent = await page.getTextContent();
     textContent.items.forEach(item => {
       const span = document.createElement('span');
@@ -261,62 +217,55 @@ async function renderAllPages() {
       
       textLayerDiv.appendChild(span);
     });
-
+    
     wrapper.appendChild(textLayerDiv);
     container.appendChild(wrapper);
-    
-    pageElements.set(i, wrapper);
-    observer.observe(wrapper);
   }
-
-  // Initialize display
-  currentPage = startPage;
-  updateDisplay();
 
   // Scroll to start page if it's not page 1
   if (startPage !== 1) {
-    const targetWrapper = pageElements.get(startPage);
-    if (targetWrapper) {
-      setTimeout(() => {
-        targetWrapper.scrollIntoView({ behavior: 'auto', block: 'center' });
-      }, 100);
+    const targetCanvas = canvases.find(c => c.pageNum === startPage);
+    if (targetCanvas) {
+      targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
     }
   }
+
+  container.addEventListener('scroll', updatePageNumberInView);
+  window.addEventListener('scroll', updatePageNumberInView);
+  updatePageNumberInView();
 }
 
-// Keyboard navigation
 window.addEventListener('keydown', e => {
   if (!pdfDoc) return;
-  
-  let targetPage = currentPage;
-  if (e.key === 'ArrowRight' || e.key === 'PageDown') {
-    targetPage = Math.min(pdfDoc.numPages, currentPage + 1);
-  } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-    targetPage = Math.max(1, currentPage - 1);
-  } else {
-    return;
-  }
-  
-  const targetWrapper = pageElements.get(targetPage);
-  if (targetWrapper) {
-    targetWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
+  const visiblePage = canvases.find(c => {
+    const rect = c.canvas.getBoundingClientRect();
+    return rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
+  });
+  if (!visiblePage) return;
+
+  let targetPage = visiblePage.pageNum;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
+  const targetCanvas = canvases.find(c => c.pageNum === targetPage);
+  if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
-// Bookmark button
 bookmarkBtn.addEventListener('click', () => {
+  const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
   const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
   navigator.clipboard.writeText(bookmarkURL).then(() => {
-    const originalText = bookmarkBtn.textContent;
-    bookmarkBtn.textContent = 'Copied!';
-    setTimeout(() => { bookmarkBtn.textContent = originalText; }, 2000);
-  }).catch(err => {
-    console.error('Copy failed:', err);
-    alert('Failed to copy link: ' + err);
-  });
+    bookmarkBtn.textContent = 'Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.';
+    setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 5000);
+  }).catch(err => alert('Failed to copy link: ' + err));
 });
 
-renderAllPages();
+pdfjsLib.getDocument(PDF_URL).promise.then(pdf => {
+  pdfDoc = pdf;
+  renderAllPages();
+}).catch(err => {
+  console.error('Failed to load PDF:', err);
+  container.textContent = 'Error loading PDF. Make sure Test_PDF.pdf is in the same folder.';
+});
 </script>
 </body>
 </html>
