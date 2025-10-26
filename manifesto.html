@@ -3,133 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <title>Manifesto PDF Viewer</title>
-<link rel="stylesheet" href="style.css">
-<link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
-  /* Base: allow site stylesheet (style.css) to provide the page background/visuals */
   html, body {
     height: 100%;
     margin: 0;
-    background: transparent; /* show style.css background/gradient */
+    background: #111;
     color: #fff;
     font-family: system-ui, sans-serif;
-    overflow: hidden; /* make the pdf container handle scrolling */
+    overflow: hidden;
   }
-
-  /* Fixed header that matches your site's nav (keeps visual parity with about page) */
-  nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 64px; /* matches earlier examples; style.css nav paddings still apply */
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    padding: 0 1rem;
-    z-index: 999;
-    background: rgba(16,24,32,0.96); /* slightly translucent to match site palette */
-    border-bottom: 1px solid rgba(53,60,72,0.9);
-    box-shadow: 0 2px 8px rgba(34,45,58,0.12);
-  }
-  nav a {
-    color: #f8f8f8;
-    text-decoration: none;
-    font-weight: 700;
-    font-family: inherit;
-    font-size: 1.05rem;
-    padding: 6px 8px;
-    border-radius: 6px;
-  }
-  nav a:hover { color: #bcd2e8; background: rgba(34,45,58,0.16); }
-
-  /* PDF container: sits under the fixed header and is the ONLY scrollable region */
   #pdf-container {
     width: 100vw;
-    height: calc(100vh - 64px); /* reserve header height */
-    margin-top: 64px; /* push content below the fixed nav */
+    height: 100vh;
     overflow-y: auto;
     scroll-behavior: smooth;
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: transparent; /* let the page background show through */
-    padding: 1rem 0;
-    -webkit-overflow-scrolling: touch;
+    background: #000;
   }
-
-  /* Constrain canvases so they match other pages' layout */
-  .page-wrapper {
-    width: 96%;
-    max-width: 1100px;
-    display: flex;
-    justify-content: center;
-  }
-
   canvas {
     margin: 10px 0;
     box-shadow: 0 6px 20px rgba(0,0,0,0.6);
     border-radius: 6px;
-    background: #fff; /* PDFs are usually white — keeps readability */
-    width: 100%;
-    height: auto;
+    background: #111;
   }
-
-  /* Keep page-number separate and NOT integrated into the header */
   .page-number {
     position: fixed;
-    top: calc(64px + 8px); /* just below the fixed header */
+    top: 5px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 14px;
     background: rgba(0,0,0,0.6);
-    padding: 6px 12px;
-    border-radius: 8px;
+    padding: 4px 10px;
+    border-radius: 6px;
     color: #fff;
-    z-index: 950;
+    z-index: 100;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
-
   .bookmark-btn {
     background: #2a8cff;
     border: none;
-    padding: 6px 8px;
-    border-radius: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
     color: #fff;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
   }
-  .bookmark-btn:hover { background: #1c6cd6; }
-
-  @media (max-width: 640px) {
-    nav { height: 56px; }
-    #pdf-container {
-      height: calc(100vh - 56px);
-      margin-top: 56px;
-    }
-    .page-number { top: calc(56px + 6px); font-size: 13px; padding: 5px 8px; }
+  .bookmark-btn:hover {
+    background: #1c6cd6;
   }
 </style>
 </head>
 <body>
 
-  <!-- Fixed top header so people can navigate to other pages -->
-  <nav>
-    <a href="about.html">About</a>
-    <a href="index.html">Manifesto</a>
-    <a href="threads.html">Threads</a>
-  </nav>
-
-  <!-- Page-number remains a separate floating element (not integrated into nav) -->
-  <div class="page-number" id="page-number" aria-hidden="false">
-    Page 1 / -- 
-    <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
-  </div>
-
-  <!-- The PDF viewer container (only this area scrolls) -->
-  <div id="pdf-container" role="main" aria-live="polite"></div>
+<div class="page-number" id="page-number">
+  Page 1 / -- 
+  <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
+</div>
+<div id="pdf-container"></div>
 
 <script type="module">
   import * as pdfjsLib from './pdf.mjs';
@@ -142,22 +76,15 @@
 
   let pdfDoc = null;
   let canvases = [];
-  let baseScale = 1.25;
+  let scale = 1.25;
 
   function parseHashPage() {
     const match = location.hash.match(/page=(\d+)/i);
     return match ? parseInt(match[1], 10) : 1;
   }
 
-  // Use the visible center inside the scrollable container (accounts for the fixed header)
-  function getContainerCenterY() {
-    const rect = container.getBoundingClientRect();
-    return rect.top + rect.height / 2;
-  }
-
   function updatePageNumberInView() {
-    if (!pdfDoc || canvases.length === 0) return;
-    const centerY = getContainerCenterY();
+    const centerY = window.innerHeight / 2;
     let current = 1;
     for (const { pageNum, canvas } of canvases) {
       const rect = canvas.getBoundingClientRect();
@@ -167,8 +94,9 @@
         break;
       }
     }
-    // Update the leading text node (keeps button intact)
+    // Update text only
     pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
+    // Update URL hash
     history.replaceState(null, '', `#page=${current}`);
   }
 
@@ -179,57 +107,32 @@
 
     for (let i = 1; i <= pdfDoc.numPages; i++) {
       const page = await pdfDoc.getPage(i);
-      const viewport = page.getViewport({ scale: baseScale });
-
-      // wrapper to constrain width responsively
-      const wrapper = document.createElement('div');
-      wrapper.className = 'page-wrapper';
-
-      // Fit scale to wrapper width (96% of viewport)
-      const maxWidth = Math.min(viewport.width, window.innerWidth * 0.96);
-      const fitScale = maxWidth / viewport.width;
-      const finalScale = baseScale * fitScale;
-      const finalViewport = page.getViewport({ scale: finalScale });
-
+      const viewport = page.getViewport({ scale });
       const canvas = document.createElement('canvas');
-      canvas.width = finalViewport.width;
-      canvas.height = finalViewport.height;
-      canvas.style.width = '100%';
-      canvas.style.height = 'auto';
-
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
       const ctx = canvas.getContext('2d', { alpha: false });
-      await page.render({ canvasContext: ctx, viewport: finalViewport }).promise;
-
-      wrapper.appendChild(canvas);
-      container.appendChild(wrapper);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      container.appendChild(canvas);
       canvases.push({ pageNum: i, canvas });
     }
 
-    // Scroll to specified page in the scrollable container
+    // Scroll to start page if #page specified
     const targetCanvas = canvases.find(c => c.pageNum === startPage);
-    if (targetCanvas) {
-      const rect = targetCanvas.canvas.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      const offset = (rect.top + rect.height / 2) - (containerRect.top + containerRect.height / 2);
-      container.scrollBy({ top: offset, behavior: 'auto' });
-    }
+    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
 
-    // Update page number when container scrolls
-    container.addEventListener('scroll', updatePageNumberInView);
-    window.addEventListener('resize', () => setTimeout(updatePageNumberInView, 120));
+    // Update page number as user scrolls
+    container.addEventListener('scroll', () => {
+      updatePageNumberInView();
+    });
     updatePageNumberInView();
   }
 
-  // Keyboard navigation: move between pages relative to the container's visible center
   window.addEventListener('keydown', e => {
     if (!pdfDoc) return;
-    if (document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const centerY = containerRect.top + containerRect.height / 2;
     const visiblePage = canvases.find(c => {
       const rect = c.canvas.getBoundingClientRect();
-      return rect.top <= centerY && rect.bottom >= centerY;
+      return rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
     });
     if (!visiblePage) return;
 
@@ -237,21 +140,17 @@
     if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
     const targetCanvas = canvases.find(c => c.pageNum === targetPage);
-    if (targetCanvas) {
-      const rect = targetCanvas.canvas.getBoundingClientRect();
-      const offset = (rect.top + rect.height / 2) - (containerRect.top + containerRect.height / 2);
-      container.scrollBy({ top: offset, behavior: 'smooth' });
-    }
+    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 
-  // Bookmark button: copy current page link
+  // Bookmark button functionality
   bookmarkBtn.addEventListener('click', () => {
     const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
     const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
+    // Copy to clipboard
     navigator.clipboard.writeText(bookmarkURL).then(() => {
-      const original = bookmarkBtn.textContent;
-      bookmarkBtn.textContent = 'Link copied';
-      setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 2200);
+      bookmarkBtn.textContent = 'Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.';
+      setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 5000);
     }).catch(err => {
       alert('Failed to copy link: ' + err);
     });
@@ -264,6 +163,8 @@
     console.error('Failed to load PDF:', err);
     container.textContent = 'Error loading PDF. Make sure Test_PDF.pdf is in the same folder.';
   });
+
 </script>
 </body>
 </html>
+
