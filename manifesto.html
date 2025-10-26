@@ -153,13 +153,14 @@ async function renderAllPages() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     await page.render({ canvasContext: ctx, viewport }).promise;
     container.appendChild(canvas);
-    canvases.push({ pageNum: i, canvas });
+    canvases.push({ pageNum: i, canvas, viewport, scale, dpr });
 
-    // Text layer overlay
+    // Text layer
     const textLayerDiv = document.createElement('div');
     textLayerDiv.className = 'textLayer';
     textLayerDiv.style.width = canvas.style.width;
     textLayerDiv.style.height = canvas.style.height;
+    textLayerDiv.style.position = 'absolute';
     textLayerDiv.style.top = canvas.offsetTop + 'px';
     textLayerDiv.style.left = canvas.offsetLeft + 'px';
     container.appendChild(textLayerDiv);
@@ -169,11 +170,12 @@ async function renderAllPages() {
       const span = document.createElement('span');
       span.textContent = item.str;
 
+      // Proper alignment with canvas
       const [a, b, c, d, x, y] = item.transform;
-      const fontHeight = item.height * scale;
+      const fontHeight = item.height * scale * dpr;
       span.style.position = 'absolute';
-      span.style.left = (x * scale) + 'px';
-      span.style.top = (viewport.height - y) * scale + 'px'; // Flip y-axis
+      span.style.left = (x * scale * dpr) + 'px';
+      span.style.top = ((viewport.height - y) * scale * dpr) + 'px';
       span.style.fontSize = fontHeight + 'px';
       span.style.whiteSpace = 'pre';
       span.style.color = 'transparent';
@@ -188,7 +190,6 @@ async function renderAllPages() {
     if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
   }
 
-  container.addEventListener('scroll', updatePageNumberInView);
   window.addEventListener('scroll', updatePageNumberInView);
   updatePageNumberInView();
 }
