@@ -150,7 +150,7 @@
     // Copy to clipboard
     navigator.clipboard.writeText(bookmarkURL).then(() => {
       bookmarkBtn.textContent = 'Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.';
-      setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 1000);
+      setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 5000);
     }).catch(err => {
       alert('Failed to copy link: ' + err);
     });
