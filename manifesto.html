@@ -221,12 +221,19 @@ async function renderAllPages() {
   // Scroll to start page if it's not page 1
   if (startPage !== 1) {
     const targetCanvas = canvases.find(c => c.pageNum === startPage);
-    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
+    if (targetCanvas) {
+      setTimeout(() => {
+        targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
+        updatePageNumberInView();
+      }, 100);
+    }
+  } else {
+    updatePageNumberInView();
   }
-
-  window.addEventListener('scroll', updatePageNumberInView);
-  updatePageNumberInView();
 }
+
+// Set up scroll listener once
+window.addEventListener('scroll', updatePageNumberInView);
 
 window.addEventListener('keydown', e => {
   if (!pdfDoc) return;
@@ -240,7 +247,10 @@ window.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
   if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
   const targetCanvas = canvases.find(c => c.pageNum === targetPage);
-  if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (targetCanvas) {
+    targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(updatePageNumberInView, 100);
+  }
 });
 
 bookmarkBtn.addEventListener('click', () => {
