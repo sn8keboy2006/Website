@@ -79,7 +79,7 @@
 
 <main>
   <div class="page-number" id="page-number">
-    Page 1 / -- 
+    <span id="page-number-text">Page 1 / --</span>
     <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
   </div>
   <div id="pdf-container"></div>
@@ -96,11 +96,12 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
 const PDF_URL = './Test_PDF.pdf';
 const container = document.getElementById('pdf-container');
 const pageNumberDisplay = document.getElementById('page-number');
+const pageNumberText = document.getElementById('page-number-text');
 const bookmarkBtn = document.getElementById('bookmark-btn');
 
 let pdfDoc = null;
 let canvases = [];
-let scale = 1.5; // higher scale = higher resolution
+let scale = 1.5; // High DPI
 
 function parseHashPage() {
   const match = location.hash.match(/page=(\d+)/i);
@@ -118,15 +119,15 @@ function updatePageNumberInView() {
       break;
     }
   }
-  pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
+
+  pageNumberText.textContent = `Page ${current} / ${pdfDoc.numPages}`;
   history.replaceState(null, '', `#page=${current}`);
 
-  // Fade-in after bottom of page 1
+  // Fade-in page number after page 1
   const page1 = canvases.find(c => c.pageNum === 1);
   if (page1) {
     const rect = page1.canvas.getBoundingClientRect();
-    if (rect.bottom <= 0) pageNumberDisplay.classList.add('visible');
-    else pageNumberDisplay.classList.remove('visible');
+    pageNumberDisplay.classList.toggle('visible', rect.bottom <= 0);
   }
 }
 
@@ -154,7 +155,7 @@ async function renderAllPages() {
     container.appendChild(canvas);
     canvases.push({ pageNum: i, canvas });
 
-    // Text layer
+    // Text layer overlay
     const textLayerDiv = document.createElement('div');
     textLayerDiv.className = 'textLayer';
     textLayerDiv.style.width = canvas.style.width;
@@ -167,15 +168,16 @@ async function renderAllPages() {
     textContent.items.forEach(item => {
       const span = document.createElement('span');
       span.textContent = item.str;
-      // PDF coordinates: transform[4,5] = x,y
+
       const [a, b, c, d, x, y] = item.transform;
-      const fontHeight = item.height || 12;
+      const fontHeight = item.height * scale;
       span.style.position = 'absolute';
-      span.style.left = x + 'px';
-      span.style.top = (viewport.height - y) + 'px'; // flip y-axis
+      span.style.left = (x * scale) + 'px';
+      span.style.top = (viewport.height - y) * scale + 'px'; // Flip y-axis
       span.style.fontSize = fontHeight + 'px';
       span.style.whiteSpace = 'pre';
       span.style.color = 'transparent';
+
       textLayerDiv.appendChild(span);
     });
   }
