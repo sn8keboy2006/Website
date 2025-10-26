@@ -18,16 +18,16 @@
     z-index: 1;
   }
 
-  .page-container {
+  .page-wrapper {
     position: relative;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-    border-radius: 12px;
-    background: #232a35;
+    display: inline-block;
     max-width: 90%;
   }
 
   canvas {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
     border-radius: 12px;
+    background: #232a35;
     display: block;
   }
 
@@ -167,11 +167,10 @@
       const viewport = page.getViewport({ scale });
       const dpr = window.devicePixelRatio || 1;
       
-      // Create page container
-      const pageContainer = document.createElement('div');
-      pageContainer.className = 'page-container';
+      // Wrapper for canvas + text layer
+      const wrapper = document.createElement('div');
+      wrapper.className = 'page-wrapper';
       
-      // Create canvas
       const canvas = document.createElement('canvas');
       canvas.width = viewport.width * dpr;
       canvas.height = viewport.height * dpr;
@@ -180,15 +179,15 @@
       const ctx = canvas.getContext('2d', { alpha: false });
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       await page.render({ canvasContext: ctx, viewport }).promise;
+      wrapper.appendChild(canvas);
       
-      pageContainer.appendChild(canvas);
-      
-      // Create text layer
+      // Add text layer
       const textLayerDiv = document.createElement('div');
       textLayerDiv.className = 'textLayer';
-      pageContainer.appendChild(textLayerDiv);
+      textLayerDiv.style.width = viewport.width + 'px';
+      textLayerDiv.style.height = viewport.height + 'px';
+      wrapper.appendChild(textLayerDiv);
       
-      // Render text layer
       const textContent = await page.getTextContent();
       pdfjsLib.renderTextLayer({
         textContentSource: textContent,
@@ -197,8 +196,8 @@
         textDivs: []
       });
       
-      container.appendChild(pageContainer);
-      canvases.push({ pageNum: i, canvas: pageContainer });
+      container.appendChild(wrapper);
+      canvases.push({ pageNum: i, canvas: wrapper });
     }
 
     // Scroll to start page if it's not page 1
