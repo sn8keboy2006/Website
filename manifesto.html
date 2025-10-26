@@ -16,16 +16,30 @@ nav {
   position: fixed;
   top: 0;
   width: 100%;
-  background: #232a35;
-  padding: 1rem;
-  z-index: 20;
+  background: #101820;
   display: flex;
-  gap: 1rem;
+  justify-content: center;
+  padding: 1rem 2rem;
+  gap: 2rem;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(34,45,58,0.18);
+  z-index: 20;
 }
 nav a {
-  color: #fff;
+  color: #f8f8f8;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 1.1em;
+  letter-spacing: 0.04em;
+  transition: color 0.2s, text-decoration 0.2s;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+nav a:hover {
+  color: #bcd2e8;
+  text-decoration: none;
+  background: #222d3a;
 }
 main {
   margin-top: 60px;
@@ -62,7 +76,7 @@ canvas {
   pointer-events: auto;
   user-select: text;
   color: transparent;
-  font-family: sans-serif;
+  font-family: 'Times New Roman', Times, serif;
 }
 .textLayer span {
   position: absolute;
