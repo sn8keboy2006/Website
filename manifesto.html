@@ -1,111 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Manifesto PDF Viewer</title>
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: #111;
-      color: #fff;
-      font-family: system-ui, sans-serif;
-      overflow: hidden;
-    }
-    #pdf-canvas {
-      width: 100vw;
-      height: 100vh;
-      display: block;
-      object-fit: contain;
-      background: #000;
-    }
-    .controls {
-      position: fixed;
-      bottom: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.6);
-      padding: 10px 15px;
-      border-radius: 8px;
-    }
-    button {
-      background: #007acc;
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      margin: 0 4px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button:disabled {
-      background: #444;
-      cursor: default;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Manifesto PDF Viewer</title>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: #111;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+    overflow: hidden;
+  }
+  #pdf-container {
+    width: 100vw;
+    height: 100vh;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #000;
+  }
+  canvas {
+    margin: 10px 0;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+    border-radius: 6px;
+    background: #111;
+  }
+  .page-number {
+    position: fixed;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    background: rgba(0,0,0,0.6);
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: #fff;
+    z-index: 100;
+  }
+</style>
 </head>
 <body>
-  <canvas id="pdf-canvas"></canvas>
 
-  <div class="controls">
-    <button id="prev">Prev</button>
-    <span>Page <span id="page-num">1</span> of <span id="page-count">--</span></span>
-    <button id="next">Next</button>
-  </div>
+<div class="page-number" id="page-number">Page 1 / --</div>
+<div id="pdf-container"></div>
 
-  <script type="module">
-    import * as pdfjsLib from './pdf.mjs';
-    pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
+<script type="module">
+  import * as pdfjsLib from './pdf.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
 
-    const PDF_URL = './Test_PDF.pdf';
-    const canvas = document.getElementById('pdf-canvas');
-    const ctx = canvas.getContext('2d');
+  const PDF_URL = './Test_PDF.pdf';
+  const container = document.getElementById('pdf-container');
+  const pageNumberDisplay = document.getElementById('page-number');
 
-    let pdfDoc = null;
-    let pageNum = 1;
-    let scale = 1.5;
+  let pdfDoc = null;
+  let canvases = [];
+  let scale = 1.25;
 
-    const pageNumElem = document.getElementById('page-num');
-    const pageCountElem = document.getElementById('page-count');
-    const prevBtn = document.getElementById('prev');
-    const nextBtn = document.getElementById('next');
+  function parseHashPage() {
+    const match = location.hash.match(/page=(\d+)/i);
+    return match ? parseInt(match[1], 10) : 1;
+  }
 
-    // Load the PDF
-    pdfjsLib.getDocument(PDF_URL).promise.then(pdf => {
-      pdfDoc = pdf;
-      pageCountElem.textContent = pdf.numPages;
-      renderPage(pageNum);
-    }).catch(err => {
-      console.error('Error loading PDF:', err);
-      alert('Could not load PDF. Make sure Test_PDF.pdf is in the same folder as this HTML file.');
-    });
+  function updatePageNumberInView() {
+    const rect = container.getBoundingClientRect();
+    const centerY = window.innerHeight / 2;
+    let current = 1;
+    for (const { pageNum, canvas } of canvases) {
+      const canvasRect = canvas.getBoundingClientRect();
+      const canvasCenter = canvasRect.top + canvasRect.height / 2;
+      if (Math.abs(canvasCenter - centerY) < canvasRect.height / 2) {
+        current = pageNum;
+        break;
+      }
+    }
+    pageNumberDisplay.textContent = `Page ${current} / ${pdfDoc.numPages}`;
+    history.replaceState(null, '', `#page=${current}`);
+  }
 
-    function renderPage(num) {
-      pdfDoc.getPage(num).then(page => {
-        const viewport = page.getViewport({ scale });
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+  async function renderAllPages() {
+    container.innerHTML = '';
+    canvases = [];
+    const startPage = parseHashPage();
 
-        const renderCtx = { canvasContext: ctx, viewport: viewport };
-        page.render(renderCtx).promise.then(() => {
-          pageNumElem.textContent = num;
-          prevBtn.disabled = num <= 1;
-          nextBtn.disabled = num >= pdfDoc.numPages;
-        });
-      });
+    for (let i = 1; i <= pdfDoc.numPages; i++) {
+      const page = await pdfDoc.getPage(i);
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d', { alpha: false });
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      container.appendChild(canvas);
+      canvases.push({ pageNum: i, canvas });
     }
 
-    prevBtn.addEventListener('click', () => {
-      if (pageNum <= 1) return;
-      pageNum--;
-      renderPage(pageNum);
-    });
+    // Scroll to start page if #page specified
+    const targetCanvas = canvases.find(c => c.pageNum === startPage);
+    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
 
-    nextBtn.addEventListener('click', () => {
-      if (pageNum >= pdfDoc.numPages) return;
-      pageNum++;
-      renderPage(pageNum);
+    // Update page number as user scrolls
+    container.addEventListener('scroll', () => {
+      updatePageNumberInView();
     });
-  </script>
+    updatePageNumberInView();
+  }
+
+  window.addEventListener('keydown', e => {
+    if (!pdfDoc) return;
+    const visiblePage = canvases.find(c => {
+      const rect = c.canvas.getBoundingClientRect();
+      return rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
+    });
+    if (!visiblePage) return;
+
+    let targetPage = visiblePage.pageNum;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
+    const targetCanvas = canvases.find(c => c.pageNum === targetPage);
+    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  pdfjsLib.getDocument(PDF_URL).promise.then(pdf => {
+    pdfDoc = pdf;
+    renderAllPages();
+  }).catch(err => {
+    console.error('Failed to load PDF:', err);
+    container.textContent = 'Error loading PDF. Make sure Test_PDF.pdf is in the same folder.';
+  });
+
+</script>
 </body>
 </html>
+
