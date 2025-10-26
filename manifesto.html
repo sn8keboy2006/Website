@@ -3,34 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <title>Manifesto PDF Viewer</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
+  /* Basic page / fallback styles */
   html, body {
     height: 100%;
     margin: 0;
-    background: #111;
+    background: var(--page-bg, #0f1418);
     color: #fff;
     font-family: system-ui, sans-serif;
-    overflow: hidden;
+    overflow: hidden; /* container will handle scrolling */
   }
+
+  /* Fixed header so it stays visible while scrolling */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px; /* header height used to calculate container height */
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding: 0 1rem;
+    background: rgba(35,42,53,0.98);
+    border-bottom: 1px solid rgba(53,60,72,0.9);
+    color: #c9d1d9;
+    z-index: 999;
+    backdrop-filter: saturate(120%) blur(4px);
+  }
+  nav a {
+    color: #bcd2e8;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  nav a:hover {
+    text-decoration: underline;
+  }
+
+  /* PDF container sits beneath the fixed header and is the only scrollable area */
   #pdf-container {
     width: 100vw;
-    height: 100vh;
+    height: calc(100vh - 64px); /* reserve space for the fixed header */
+    margin-top: 64px; /* push below the fixed nav */
     overflow-y: auto;
     scroll-behavior: smooth;
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: #000;
+    background: transparent;
+    padding: 1rem 0;
   }
+
+  /* Canvas responsive constraints */
+  .page-wrapper {
+    width: 96%;
+    max-width: 1200px;
+    display: flex;
+    justify-content: center;
+  }
+
   canvas {
     margin: 10px 0;
     box-shadow: 0 6px 20px rgba(0,0,0,0.6);
     border-radius: 6px;
     background: #111;
+    width: 100%;
+    height: auto;
   }
+
+  /* Page-number remains a separate floating element (not integrated into the header) */
   .page-number {
     position: fixed;
-    top: 5px;
+    top: calc(64px + 10px); /* positioned just below the fixed header */
     left: 50%;
     transform: translateX(-50%);
     font-size: 14px;
@@ -38,7 +84,7 @@
     padding: 4px 10px;
     border-radius: 6px;
     color: #fff;
-    z-index: 100;
+    z-index: 950;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -55,15 +101,33 @@
   .bookmark-btn:hover {
     background: #1c6cd6;
   }
+
+  @media (max-width: 600px) {
+    nav { height: 56px; }
+    #pdf-container {
+      height: calc(100vh - 56px);
+      margin-top: 56px;
+    }
+    .page-number { top: calc(56px + 8px); font-size: 13px; }
+  }
 </style>
 </head>
 <body>
 
-<div class="page-number" id="page-number">
-  Page 1 / -- 
-  <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">🔖</button>
-</div>
-<div id="pdf-container"></div>
+  <!-- Fixed header for site navigation (remains visible while scrolling) -->
+  <nav>
+    <a href="about.html">About</a>
+    <a href="index.html">Manifesto</a>
+    <a href="threads.html">Threads</a>
+  </nav>
+
+  <!-- Separate page-number floating element (intentionally NOT integrated into the header) -->
+  <div class="page-number" id="page-number">
+    Page 1 / -- 
+    <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">🔖</button>
+  </div>
+
+  <div id="pdf-container" aria-live="polite"></div>
 
 <script type="module">
   import * as pdfjsLib from './pdf.mjs';
@@ -76,7 +140,7 @@
 
   let pdfDoc = null;
   let canvases = [];
-  let scale = 1.25;
+  let baseScale = 1.25;
 
   function parseHashPage() {
     const match = location.hash.match(/page=(\d+)/i);
@@ -84,7 +148,8 @@
   }
 
   function updatePageNumberInView() {
-    const centerY = window.innerHeight / 2;
+    if (!pdfDoc || canvases.length === 0) return;
+    const centerY = (window.innerHeight - getHeaderHeight()) / 2 + getHeaderHeight();
     let current = 1;
     for (const { pageNum, canvas } of canvases) {
       const rect = canvas.getBoundingClientRect();
@@ -94,10 +159,13 @@
         break;
       }
     }
-    // Update text only
     pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
-    // Update URL hash
     history.replaceState(null, '', `#page=${current}`);
+  }
+
+  function getHeaderHeight() {
+    const nav = document.querySelector('nav');
+    return nav ? nav.getBoundingClientRect().height : 64;
   }
 
   async function renderAllPages() {
@@ -107,32 +175,59 @@
 
     for (let i = 1; i <= pdfDoc.numPages; i++) {
       const page = await pdfDoc.getPage(i);
-      const viewport = page.getViewport({ scale });
+      const viewport = page.getViewport({ scale: baseScale });
+
+      // wrapper to constrain width responsively
+      const wrapper = document.createElement('div');
+      wrapper.className = 'page-wrapper';
+
+      // Fit scale to wrapper width (96% of viewport or max width)
+      const containerMaxWidth = Math.min(viewport.width, window.innerWidth * 0.96);
+      const fitScale = containerMaxWidth / viewport.width;
+      const finalScale = baseScale * fitScale;
+      const finalViewport = page.getViewport({ scale: finalScale });
+
       const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      canvas.width = finalViewport.width;
+      canvas.height = finalViewport.height;
+      canvas.style.width = '100%';
+      canvas.style.height = 'auto';
+
       const ctx = canvas.getContext('2d', { alpha: false });
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      container.appendChild(canvas);
+      await page.render({ canvasContext: ctx, viewport: finalViewport }).promise;
+
+      wrapper.appendChild(canvas);
+      container.appendChild(wrapper);
       canvases.push({ pageNum: i, canvas });
     }
 
     // Scroll to start page if #page specified
     const targetCanvas = canvases.find(c => c.pageNum === startPage);
-    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
+    if (targetCanvas) {
+      // center the target canvas inside the scrollable container
+      const rect = targetCanvas.canvas.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const offset = (rect.top + rect.height / 2) - (containerRect.top + containerRect.height / 2);
+      container.scrollBy({ top: offset, behavior: 'auto' });
+    }
 
     // Update page number as user scrolls
-    container.addEventListener('scroll', () => {
-      updatePageNumberInView();
-    });
+    container.addEventListener('scroll', updatePageNumberInView);
+    window.addEventListener('resize', () => setTimeout(updatePageNumberInView, 120));
     updatePageNumberInView();
   }
 
+  // Keyboard navigation remains: left/right page keys move to prev/next page
   window.addEventListener('keydown', e => {
     if (!pdfDoc) return;
+    // Only proceed if focus isn't in an input and user isn't typing
+    if (document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const centerY = containerRect.top + containerRect.height / 2;
     const visiblePage = canvases.find(c => {
       const rect = c.canvas.getBoundingClientRect();
-      return rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
+      return rect.top <= centerY && rect.bottom >= centerY;
     });
     if (!visiblePage) return;
 
@@ -140,17 +235,21 @@
     if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
     const targetCanvas = canvases.find(c => c.pageNum === targetPage);
-    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (targetCanvas) {
+      const rect = targetCanvas.canvas.getBoundingClientRect();
+      const offset = (rect.top + rect.height / 2) - (containerRect.top + containerRect.height / 2);
+      container.scrollBy({ top: offset, behavior: 'smooth' });
+    }
   });
 
   // Bookmark button functionality
   bookmarkBtn.addEventListener('click', () => {
     const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
     const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
-    // Copy to clipboard
     navigator.clipboard.writeText(bookmarkURL).then(() => {
-      bookmarkBtn.textContent = 'Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.';
-      setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 5000);
+      const prev = bookmarkBtn.textContent;
+      bookmarkBtn.textContent = 'Link copied';
+      setTimeout(() => { bookmarkBtn.textContent = '🔖'; }, 2000);
     }).catch(err => {
       alert('Failed to copy link: ' + err);
     });
