@@ -8,15 +8,37 @@
   <link rel="stylesheet" href="style.css">
   <!-- Font Awesome for share icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* Fix overflow issue - add to your existing styles */
+    .share-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #eee;
+      text-decoration: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      transition: background 0.2s ease, color 0.2s ease;
+      box-sizing: border-box; /* THIS FIXES THE OVERFLOW */
+    }
+    
+    /* Update hover colors for new platforms */
+    .share-item.wa:hover { color: #25D366; }
+    .share-item.kakao:hover { color: #FEE500; }
+    .share-item.band:hover { color: #00C73C; }
+  </style>
 </head>
   
-  <body class="index-page">
-    
-  <body>
+<body class="index-page">
   <!-- Infinity symbol background -->
   <div class="infinity-bg"></div>
 
-    
   <nav>
     <a href="about.html">About</a>
     <a href="index.html">Manifesto</a>
@@ -53,6 +75,15 @@
             <button class="share-item copy" onclick="copyShareLink()">
               <i class="fa-solid fa-link"></i> Copy Link
             </button>
+            <a href="#" target="_blank" class="share-item wa">
+              <i class="fab fa-whatsapp"></i> WhatsApp
+            </a>
+            <a href="#" target="_blank" class="share-item kakao">
+              <i class="fas fa-comment"></i> KakaoTalk
+            </a>
+            <a href="#" target="_blank" class="share-item band">
+              <i class="fas fa-users"></i> Naver Band
+            </a>
           </div>
         </div>
       </div>
@@ -73,9 +104,14 @@
 
       // fill in share links dynamically
       const pageUrl = encodeURIComponent(window.location.href);
+      const pageTitle = encodeURIComponent(document.title);
+      
       document.querySelector(".share-item.fb").href = `https://www.facebook.com/sharer/sharer.php?u=${pageUrl}`;
       document.querySelector(".share-item.tw").href = `https://twitter.com/intent/tweet?url=${pageUrl}`;
       document.querySelector(".share-item.tb").href = `https://www.tumblr.com/widgets/share/tool?canonicalUrl=${pageUrl}`;
+      document.querySelector(".share-item.wa").href = `https://wa.me/?text=${pageTitle}%20${pageUrl}`;
+      document.querySelector(".share-item.kakao").href = `https://story.kakao.com/share?url=${pageUrl}`;
+      document.querySelector(".share-item.band").href = `https://band.us/plugin/share?body=${pageTitle}%20${pageUrl}&route=${pageUrl}`;
     }
 
     function copyShareLink() {
