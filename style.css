@@ -109,7 +109,7 @@ footer {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: 2rem 2rem;
   background: #101820;
   color: #f8f8f8;
   margin-top: 0rem;
@@ -127,7 +127,7 @@ footer {
 .footer-viewcount {
   position: absolute;
   right: 2rem;
-  bottom: .75rem;
+  bottom: 1.5rem;
   background: transparent;
   color: #bcd2e8;
   font-size: 1.05em;
@@ -153,15 +153,13 @@ footer {
 .hero {
   position: relative;
   text-align: center;
-  padding: 1rem 2rem 2rem 2rem; /* keep padding positive */
-  margin-top: -1rem;         /* moves hero 1rem upward toward the nav */
-  margin-bottom: 1rem;
+  padding: 4rem 2rem 3rem 2rem;
+  margin-top: -2rem;
+  margin-bottom: 2rem;
   background: transparent;
   box-shadow: 0 4px 32px rgba(34,45,58,0.20);
   border-radius: 16px;
   overflow: hidden;
-}
-
 
   /* NEW: make hero fill the remaining viewport height */
   min-height: calc(100vh - 120px); /* adjust 120px to match nav+footer height */
@@ -485,3 +483,4 @@ a, a:visited, a:active {
   text-decoration: none;
   color: inherit;
 }
+
