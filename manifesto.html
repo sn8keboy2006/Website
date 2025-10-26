@@ -18,11 +18,43 @@
     z-index: 1;
   }
 
-  canvas {
+  .page-wrapper {
+    position: relative;
+    display: inline-block;
     box-shadow: 0 6px 20px rgba(0,0,0,0.6);
     border-radius: 12px;
     background: #232a35;
     max-width: 90%;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 12px;
+  }
+
+  /* Text layer for selection */
+  .textLayer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    opacity: 0.2;
+    line-height: 1.0;
+    pointer-events: auto;
+  }
+
+  .textLayer > span {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+  }
+
+  .textLayer ::selection {
+    background: rgba(0, 100, 255, 0.3);
   }
 
   .page-number {
@@ -39,8 +71,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-
-    /* Fade-in setup */
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
   }
@@ -92,7 +122,7 @@
   const bookmarkBtn = document.getElementById('bookmark-btn');
 
   let pdfDoc = null;
-  let canvases = [];
+  let pageWrappers = [];
   let scale = 1.25;
 
   function parseHashPage() {
@@ -103,8 +133,8 @@
   function updatePageNumberInView() {
     const centerY = window.innerHeight / 2;
     let current = 1;
-    for (const { pageNum, canvas } of canvases) {
-      const rect = canvas.getBoundingClientRect();
+    for (const { pageNum, wrapper } of pageWrappers) {
+      const rect = wrapper.getBoundingClientRect();
       const canvasCenter = rect.top + rect.height / 2;
       if (Math.abs(canvasCenter - centerY) < rect.height / 2) {
         current = pageNum;
@@ -115,10 +145,9 @@
     pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
     history.replaceState(null, '', `#page=${current}`);
 
-    // Fade-in logic: show after bottom of page 1 is scrolled past
-    const page1 = canvases.find(c => c.pageNum === 1);
+    const page1 = pageWrappers.find(w => w.pageNum === 1);
     if (page1) {
-      const rect = page1.canvas.getBoundingClientRect();
+      const rect = page1.wrapper.getBoundingClientRect();
       if (rect.bottom <= 0) {
         pageNumberDisplay.classList.add('visible');
       } else {
@@ -129,41 +158,65 @@
 
   async function renderAllPages() {
     container.innerHTML = '';
-    canvases = [];
+    pageWrappers = [];
     const startPage = parseHashPage();
 
-    // Render all pages
     for (let i = 1; i <= pdfDoc.numPages; i++) {
-  const page = await pdfDoc.getPage(i);
-  const viewport = page.getViewport({ scale });
-  const dpr = window.devicePixelRatio || 1;
-  const canvas = document.createElement('canvas');
-  canvas.width = viewport.width * dpr;
-  canvas.height = viewport.height * dpr;
-  const ctx = canvas.getContext('2d', { alpha: false });
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  await page.render({ canvasContext: ctx, viewport }).promise;
-  container.appendChild(canvas);
-  canvases.push({ pageNum: i, canvas });
-}
+      const page = await pdfDoc.getPage(i);
+      const viewport = page.getViewport({ scale });
+      const dpr = window.devicePixelRatio || 1;
 
-    // Scroll to start page if it's not page 1
+      // Create wrapper for canvas and text layer
+      const wrapper = document.createElement('div');
+      wrapper.className = 'page-wrapper';
+      wrapper.style.width = viewport.width + 'px';
+      wrapper.style.height = viewport.height + 'px';
+
+      // Create and render canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width * dpr;
+      canvas.height = viewport.height * dpr;
+      canvas.style.width = viewport.width + 'px';
+      canvas.style.height = viewport.height + 'px';
+      const ctx = canvas.getContext('2d', { alpha: false });
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      
+      wrapper.appendChild(canvas);
+
+      // Create and render text layer
+      const textLayerDiv = document.createElement('div');
+      textLayerDiv.className = 'textLayer';
+      wrapper.appendChild(textLayerDiv);
+
+      const textContent = await page.getTextContent();
+      const textLayer = pdfjsLib.renderTextLayer({
+        textContentSource: textContent,
+        container: textLayerDiv,
+        viewport: viewport,
+        textDivs: []
+      });
+      await textLayer.promise;
+
+      container.appendChild(wrapper);
+      pageWrappers.push({ pageNum: i, wrapper });
+    }
+
     if (startPage !== 1) {
-      const targetCanvas = canvases.find(c => c.pageNum === startPage);
-      if (targetCanvas) {
-        targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
+      const targetWrapper = pageWrappers.find(w => w.pageNum === startPage);
+      if (targetWrapper) {
+        targetWrapper.wrapper.scrollIntoView({ behavior: 'auto', block: 'center' });
       }
     }
 
-    container.addEventListener('scroll', updatePageNumberInView);
     window.addEventListener('scroll', updatePageNumberInView);
     updatePageNumberInView();
   }
 
   window.addEventListener('keydown', e => {
     if (!pdfDoc) return;
-    const visiblePage = canvases.find(c => {
-      const rect = c.canvas.getBoundingClientRect();
+    const visiblePage = pageWrappers.find(w => {
+      const rect = w.wrapper.getBoundingClientRect();
       return rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
     });
     if (!visiblePage) return;
@@ -171,8 +224,8 @@
     let targetPage = visiblePage.pageNum;
     if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
-    const targetCanvas = canvases.find(c => c.pageNum === targetPage);
-    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const targetWrapper = pageWrappers.find(w => w.pageNum === targetPage);
+    if (targetWrapper) targetWrapper.wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 
   bookmarkBtn.addEventListener('click', () => {
