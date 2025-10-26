@@ -125,7 +125,7 @@
   <!-- Page-number remains a separate floating element (not integrated into nav) -->
   <div class="page-number" id="page-number" aria-hidden="false">
     Page 1 / -- 
-    <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">🔖</button>
+    <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
   </div>
 
   <!-- The PDF viewer container (only this area scrolls) -->
@@ -251,7 +251,7 @@
     navigator.clipboard.writeText(bookmarkURL).then(() => {
       const original = bookmarkBtn.textContent;
       bookmarkBtn.textContent = 'Link copied';
-      setTimeout(() => { bookmarkBtn.textContent = '🔖'; }, 2200);
+      setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 2200);
     }).catch(err => {
       alert('Failed to copy link: ' + err);
     });
