@@ -6,6 +6,37 @@
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
+  /* --- Sticky Navigation --- */
+  nav {
+    position: sticky;
+    top: 0;
+    background: #101820;
+    display: flex;
+    justify-content: center;
+    padding: 1rem 2rem;
+    gap: 2rem;
+    align-items: center;
+    z-index: 20; /* above all content */
+    box-shadow: 0 2px 8px rgba(34,45,58,0.18);
+  }
+
+  nav a {
+    color: #f8f8f8;
+    text-decoration: none;
+    font-weight: 700;
+    font-family: inherit;
+    font-size: 1.1em;
+    letter-spacing: 0.04em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+  }
+
+  nav a:hover {
+    color: #bcd2e8;
+    background: #222d3a;
+  }
+
   /* PDF container styling */
   #pdf-container {
     width: 100%;
@@ -25,20 +56,21 @@
     max-width: 90%;
   }
 
+  /* --- Sticky page number + bookmark button --- */
   .page-number {
-    position: fixed;
-    top: 5px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: sticky;
+    top: 3.5rem; /* just below the nav */
+    margin: 0 auto 1rem auto;
     font-size: 14px;
-    background: rgba(35,42,53,0.8);
+    background: rgba(35,42,53,0.85);
     padding: 4px 10px;
     border-radius: 6px;
     color: #f8f8f8;
-    z-index: 10;
+    z-index: 15;
     display: flex;
     align-items: center;
     gap: 8px;
+    width: fit-content;
   }
 
   .bookmark-btn {
@@ -53,10 +85,41 @@
   .bookmark-btn:hover {
     background: #4466a8;
   }
+
+  /* --- Zoom controls --- */
+  .zoom-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem 0;
+    position: sticky;
+    bottom: 0;
+    background: rgba(16,24,32,0.85);
+    padding: 0.6rem 0;
+    z-index: 15;
+    border-top: 1px solid #353c48;
+  }
+
+  .zoom-btn {
+    background: #3b5a92;
+    border: none;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1rem;
+    transition: background 0.2s;
+  }
+  .zoom-btn:hover {
+    background: #4466a8;
+  }
+
 </style>
 </head>
 <body>
-  <!-- Top navigation only -->
+
+  <!-- Sticky top navigation -->
   <nav>
     <a href="about.html">About</a>
     <a href="index.html">Manifesto</a>
@@ -64,11 +127,20 @@
   </nav>
 
   <main>
+    <!-- Page number + bookmark button -->
     <div class="page-number" id="page-number">
       Page 1 / -- 
       <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
     </div>
+
+    <!-- PDF container -->
     <div id="pdf-container"></div>
+
+    <!-- Zoom controls -->
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoom-out">- Zoom Out</button>
+      <button class="zoom-btn" id="zoom-in">+ Zoom In</button>
+    </div>
   </main>
 
   <footer>
@@ -83,6 +155,8 @@
   const container = document.getElementById('pdf-container');
   const pageNumberDisplay = document.getElementById('page-number');
   const bookmarkBtn = document.getElementById('bookmark-btn');
+  const zoomInBtn = document.getElementById('zoom-in');
+  const zoomOutBtn = document.getElementById('zoom-out');
 
   let pdfDoc = null;
   let canvases = [];
@@ -128,9 +202,17 @@
     const targetCanvas = canvases.find(c => c.pageNum === startPage);
     if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
 
-    container.addEventListener('scroll', () => updatePageNumberInView());
+    container.addEventListener('scroll', updatePageNumberInView);
     updatePageNumberInView();
   }
+
+  function zoom(factor) {
+    scale = Math.max(0.25, Math.min(5, scale * factor)); // limits: 0.25x–5x
+    renderAllPages();
+  }
+
+  zoomInBtn.addEventListener('click', () => zoom(1.2));
+  zoomOutBtn.addEventListener('click', () => zoom(0.8));
 
   window.addEventListener('keydown', e => {
     if (!pdfDoc) return;
