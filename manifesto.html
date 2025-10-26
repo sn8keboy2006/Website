@@ -6,7 +6,6 @@
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
-  /* PDF container styling */
   #pdf-container {
     width: 100%;
     display: flex;
@@ -25,6 +24,15 @@
     max-width: 90%;
   }
 
+  .textLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: auto;
+    user-select: text;
+    color: transparent; /* makes text selectable but invisible */
+  }
+
   .page-number {
     position: fixed;
     top: 5px;
@@ -39,8 +47,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-
-    /* Fade-in setup */
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
   }
@@ -64,133 +70,146 @@
 </style>
 </head>
 <body>
-  <nav>
-    <a href="about.html">About</a>
-    <a href="index.html#page=1">Manifesto</a>
-    <a href="threads.html">Threads</a>
-  </nav>
+<nav>
+  <a href="about.html">About</a>
+  <a href="index.html#page=1">Manifesto</a>
+  <a href="threads.html">Threads</a>
+</nav>
 
-  <main>
-    <div class="page-number" id="page-number">
-      Page 1 / -- 
-      <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
-    </div>
-    <div id="pdf-container"></div>
-  </main>
+<main>
+  <div class="page-number" id="page-number">
+    Page 1 / -- 
+    <button class="bookmark-btn" id="bookmark-btn" title="Copy link to this page">📌</button>
+  </div>
+  <div id="pdf-container"></div>
+</main>
 
-  <footer>
-    <span class="footer-copy">&copy; 2025 </span>
-  </footer>
+<footer>
+  <span class="footer-copy">&copy; 2025 </span>
+</footer>
 
 <script type="module">
-  import * as pdfjsLib from './pdf.mjs';
-  pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
+import * as pdfjsLib from './pdf.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
 
-  const PDF_URL = './Test_PDF.pdf';
-  const container = document.getElementById('pdf-container');
-  const pageNumberDisplay = document.getElementById('page-number');
-  const bookmarkBtn = document.getElementById('bookmark-btn');
+const PDF_URL = './Test_PDF.pdf';
+const container = document.getElementById('pdf-container');
+const pageNumberDisplay = document.getElementById('page-number');
+const bookmarkBtn = document.getElementById('bookmark-btn');
 
-  let pdfDoc = null;
-  let canvases = [];
-  let scale = 1.25;
+let pdfDoc = null;
+let canvases = [];
+let scale = 1.25;
 
-  function parseHashPage() {
-    const match = location.hash.match(/page=(\d+)/i);
-    return match ? parseInt(match[1], 10) : 1;
-  }
-
-  function updatePageNumberInView() {
-    const centerY = window.innerHeight / 2;
-    let current = 1;
-    for (const { pageNum, canvas } of canvases) {
-      const rect = canvas.getBoundingClientRect();
-      const canvasCenter = rect.top + rect.height / 2;
-      if (Math.abs(canvasCenter - centerY) < rect.height / 2) {
-        current = pageNum;
-        break;
-      }
-    }
-
-    pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
-    history.replaceState(null, '', `#page=${current}`);
-
-    // Fade-in logic: show after bottom of page 1 is scrolled past
-    const page1 = canvases.find(c => c.pageNum === 1);
-    if (page1) {
-      const rect = page1.canvas.getBoundingClientRect();
-      if (rect.bottom <= 0) {
-        pageNumberDisplay.classList.add('visible');
-      } else {
-        pageNumberDisplay.classList.remove('visible');
-      }
-    }
-  }
-
-  async function renderAllPages() {
-    container.innerHTML = '';
-    canvases = [];
-    const startPage = parseHashPage();
-
-    // Render all pages
-    for (let i = 1; i <= pdfDoc.numPages; i++) {
-  const page = await pdfDoc.getPage(i);
-  const viewport = page.getViewport({ scale });
-  const dpr = window.devicePixelRatio || 1;
-  const canvas = document.createElement('canvas');
-  canvas.width = viewport.width * dpr;
-  canvas.height = viewport.height * dpr;
-  const ctx = canvas.getContext('2d', { alpha: false });
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  await page.render({ canvasContext: ctx, viewport }).promise;
-  container.appendChild(canvas);
-  canvases.push({ pageNum: i, canvas });
+function parseHashPage() {
+  const match = location.hash.match(/page=(\d+)/i);
+  return match ? parseInt(match[1], 10) : 1;
 }
 
-    // Scroll to start page if it's not page 1
-    if (startPage !== 1) {
-      const targetCanvas = canvases.find(c => c.pageNum === startPage);
-      if (targetCanvas) {
-        targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
-      }
+function updatePageNumberInView() {
+  const centerY = window.innerHeight / 2;
+  let current = 1;
+  for (const { pageNum, canvas } of canvases) {
+    const rect = canvas.getBoundingClientRect();
+    const canvasCenter = rect.top + rect.height / 2;
+    if (Math.abs(canvasCenter - centerY) < rect.height / 2) {
+      current = pageNum;
+      break;
     }
+  }
+  pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
+  history.replaceState(null, '', `#page=${current}`);
 
-    container.addEventListener('scroll', updatePageNumberInView);
-    window.addEventListener('scroll', updatePageNumberInView);
-    updatePageNumberInView();
+  // Fade-in logic: show after bottom of page 1 is scrolled past
+  const page1 = canvases.find(c => c.pageNum === 1);
+  if (page1) {
+    const rect = page1.canvas.getBoundingClientRect();
+    if (rect.bottom <= 0) {
+      pageNumberDisplay.classList.add('visible');
+    } else {
+      pageNumberDisplay.classList.remove('visible');
+    }
+  }
+}
+
+async function renderAllPages() {
+  container.innerHTML = '';
+  canvases = [];
+  const startPage = parseHashPage();
+
+  pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
+
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
+    const page = await pdfDoc.getPage(i);
+    const viewport = page.getViewport({ scale });
+    const dpr = window.devicePixelRatio || 1;
+
+    // Render canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width * dpr;
+    canvas.height = viewport.height * dpr;
+    canvas.style.width = viewport.width + 'px';
+    canvas.style.height = viewport.height + 'px';
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    container.appendChild(canvas);
+    canvases.push({ pageNum: i, canvas });
+
+    // Render text layer
+    const textContent = await page.getTextContent();
+    const textLayerDiv = document.createElement('div');
+    textLayerDiv.className = 'textLayer';
+    textLayerDiv.style.width = viewport.width + 'px';
+    textLayerDiv.style.height = viewport.height + 'px';
+    textLayerDiv.style.top = canvas.offsetTop + 'px';
+    textLayerDiv.style.left = canvas.offsetLeft + 'px';
+    container.appendChild(textLayerDiv);
+
+    pdfjsLib.renderTextLayer({
+      textContent,
+      container: textLayerDiv,
+      viewport,
+      textDivs: []
+    });
   }
 
-  window.addEventListener('keydown', e => {
-    if (!pdfDoc) return;
-    const visiblePage = canvases.find(c => {
-      const rect = c.canvas.getBoundingClientRect();
-      return rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
-    });
-    if (!visiblePage) return;
+  // Scroll to start page if it's not page 1
+  if (startPage !== 1) {
+    const targetCanvas = canvases.find(c => c.pageNum === startPage);
+    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
+  }
 
-    let targetPage = visiblePage.pageNum;
-    if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
-    if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
-    const targetCanvas = canvases.find(c => c.pageNum === targetPage);
-    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  });
+  container.addEventListener('scroll', updatePageNumberInView);
+  window.addEventListener('scroll', updatePageNumberInView);
+  updatePageNumberInView();
+}
 
-  bookmarkBtn.addEventListener('click', () => {
-    const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
-    const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
-    navigator.clipboard.writeText(bookmarkURL).then(() => {
-      bookmarkBtn.textContent = 'Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.';
-      setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 5000);
-    }).catch(err => alert('Failed to copy link: ' + err));
+window.addEventListener('keydown', e => {
+  if (!pdfDoc) return;
+  const visiblePage = canvases.find(c => {
+    const rect = c.canvas.getBoundingClientRect();
+    return rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
   });
+  if (!visiblePage) return;
 
-  pdfjsLib.getDocument(PDF_URL).promise.then(pdf => {
-    pdfDoc = pdf;
-    renderAllPages();
-  }).catch(err => {
-    console.error('Failed to load PDF:', err);
-    container.textContent = 'Error loading PDF. Make sure Test_PDF.pdf is in the same folder.';
-  });
+  let targetPage = visiblePage.pageNum;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
+  const targetCanvas = canvases.find(c => c.pageNum === targetPage);
+  if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+bookmarkBtn.addEventListener('click', () => {
+  const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
+  const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
+  navigator.clipboard.writeText(bookmarkURL).then(() => {
+    bookmarkBtn.textContent = 'Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.';
+    setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 5000);
+  }).catch(err => alert('Failed to copy link: ' + err));
+});
+
+renderAllPages();
 </script>
 </body>
 </html>
