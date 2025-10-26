@@ -1,134 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Manifesto PDF Viewer</title>
   <style>
-    body {
-      background: #0f1720;
-      color: #c9d1d9;
-      font-family: Inter, system-ui, sans-serif;
+    html, body {
+      height: 100%;
       margin: 0;
-      padding: 0;
-      text-align: center;
+      background: #111;
+      color: #fff;
+      font-family: system-ui, sans-serif;
+      overflow: hidden;
     }
-    h1 {
-      color: #bcd2e8;
-      margin-top: 24px;
-    }
-    #pdf-viewer {
-      margin: 24px auto;
-      display: inline-block;
-      background: #232a35;
-      padding: 12px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-    canvas {
+    #pdf-canvas {
+      width: 100vw;
+      height: 100vh;
       display: block;
-      margin: 0 auto;
-      background: #0b1116;
-      border-radius: 6px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      object-fit: contain;
+      background: #000;
     }
     .controls {
-      margin-top: 12px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 8px;
+      position: fixed;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6);
+      padding: 10px 15px;
+      border-radius: 8px;
     }
     button {
-      background: #bcd2e8;
-      color: #0f1720;
+      background: #007acc;
       border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
+      color: white;
+      padding: 8px 16px;
+      margin: 0 4px;
+      border-radius: 4px;
       cursor: pointer;
-      font-weight: 600;
-    }
-    button:hover {
-      background: #d3e3f3;
+      font-size: 14px;
     }
     button:disabled {
       background: #444;
-      color: #999;
       cursor: default;
-    }
-    #page-info {
-      font-weight: 600;
-      color: #bcd2e8;
     }
   </style>
 </head>
 <body>
-  <h1>Manifesto PDF Viewer</h1>
+  <canvas id="pdf-canvas"></canvas>
 
-  <div id="pdf-viewer">
-    <canvas id="pdf-canvas"></canvas>
-    <div class="controls">
-      <button id="prev">Previous</button>
-      <span id="page-info">Page <span id="page-num">1</span> of <span id="page-count">--</span></span>
-      <button id="next">Next</button>
-    </div>
+  <div class="controls">
+    <button id="prev">Prev</button>
+    <span>Page <span id="page-num">1</span> of <span id="page-count">--</span></span>
+    <button id="next">Next</button>
   </div>
 
-  <!-- Local PDF.js scripts -->
-  <script src="pdf.min.js"></script>
-  <script>
-    // Configure worker path
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+  <script type="module">
+    import * as pdfjsLib from './pdf.mjs';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
 
-    const PDF_FILE = 'Test_PDF.pdf';  // PDF filename (must match uploaded file)
+    const PDF_URL = './Test_PDF.pdf';
     const canvas = document.getElementById('pdf-canvas');
     const ctx = canvas.getContext('2d');
+
+    let pdfDoc = null;
+    let pageNum = 1;
+    let scale = 1.5;
 
     const pageNumElem = document.getElementById('page-num');
     const pageCountElem = document.getElementById('page-count');
     const prevBtn = document.getElementById('prev');
     const nextBtn = document.getElementById('next');
 
-    let pdfDoc = null;
-    let pageNum = 1;
-    let scale = 1.2;
-    let isRendering = false;
-
-    // Load PDF
-    pdfjsLib.getDocument(PDF_FILE).promise.then(pdf => {
+    // Load the PDF
+    pdfjsLib.getDocument(PDF_URL).promise.then(pdf => {
       pdfDoc = pdf;
       pageCountElem.textContent = pdf.numPages;
       renderPage(pageNum);
     }).catch(err => {
       console.error('Error loading PDF:', err);
-      alert('Could not load PDF. Check the filename or path.');
+      alert('Could not load PDF. Make sure Test_PDF.pdf is in the same folder as this HTML file.');
     });
 
     function renderPage(num) {
-      isRendering = true;
       pdfDoc.getPage(num).then(page => {
         const viewport = page.getViewport({ scale });
-        canvas.height = viewport.height;
         canvas.width = viewport.width;
+        canvas.height = viewport.height;
 
-        const renderCtx = { canvasContext: ctx, viewport };
-        const renderTask = page.render(renderCtx);
-        return renderTask.promise;
-      }).then(() => {
-        isRendering = false;
-        pageNumElem.textContent = num;
-        prevBtn.disabled = num <= 1;
-        nextBtn.disabled = num >= pdfDoc.numPages;
+        const renderCtx = { canvasContext: ctx, viewport: viewport };
+        page.render(renderCtx).promise.then(() => {
+          pageNumElem.textContent = num;
+          prevBtn.disabled = num <= 1;
+          nextBtn.disabled = num >= pdfDoc.numPages;
+        });
       });
     }
 
     prevBtn.addEventListener('click', () => {
-      if (pageNum <= 1 || isRendering) return;
+      if (pageNum <= 1) return;
       pageNum--;
       renderPage(pageNum);
     });
 
     nextBtn.addEventListener('click', () => {
-      if (pageNum >= pdfDoc.numPages || isRendering) return;
+      if (pageNum >= pdfDoc.numPages) return;
       pageNum++;
       renderPage(pageNum);
     });
