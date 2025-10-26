@@ -2,121 +2,136 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Manifesto - View</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Manifesto PDF Viewer</title>
   <style>
-    .chapter {
-      margin-bottom: 3.2rem;
-      position: relative;
-      padding-top: 0.5rem;
-    }
-    .chapter-title {
-      font-size: 1.5rem;
-      color: #bcd2e8;
-      margin-bottom: 0.6rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    .chapter-content {
+    body {
+      background: #0f1720;
       color: #c9d1d9;
-      font-size: 1.13rem;
-      line-height: 1.6;
+      font-family: Inter, system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    h1 {
+      color: #bcd2e8;
+      margin-top: 24px;
+    }
+    #pdf-viewer {
+      margin: 24px auto;
+      display: inline-block;
       background: #232a35;
-      border-radius: 14px;
-      padding: 1.5rem 2rem;
-      box-shadow: 0 2px 16px rgba(34,45,58,0.13);
-      border: 2px solid #353c48;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
-    .checkpoint-dot {
-      position: absolute;
-      left: -2.2rem;
-      top: 1.1rem;
-      width: 18px;
-      height: 18px;
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #0b1116;
+      border-radius: 6px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    }
+    .controls {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    button {
       background: #bcd2e8;
-      border: 2px solid #353c48;
-      border-radius: 50%;
+      color: #0f1720;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(34,45,58,0.13);
+      font-weight: 600;
     }
-    .checkpoint-dot:hover {
-      background: #294876;
-      border-color: #bcd2e8;
+    button:hover {
+      background: #d3e3f3;
     }
-    .chapter-anchor {
-      position: absolute;
-      top: -60px;
-      /* offset to ensure header is visible after jumping */
+    button:disabled {
+      background: #444;
+      color: #999;
+      cursor: default;
     }
-    @media (max-width: 900px) {
-      .chapter-content {
-        padding: 1rem 0.7rem;
-      }
-      .chapter-title {
-        font-size: 1.15rem;
-      }
-      .checkpoint-dot {
-        left: -1.3rem;
-        width: 15px;
-        height: 15px;
-      }
+    #page-info {
+      font-weight: 600;
+      color: #bcd2e8;
     }
   </style>
 </head>
 <body>
-  <nav>
-    <a href="about.html">About</a>
-    <a href="index.html">Manifesto</a>
-    <a href="threads.html">Threads</a>
-  </nav>
-  <main>
-    <!-- Example chapters (repeat as needed) -->
-    <div class="chapter" id="chapter1">
-      <span class="chapter-anchor" id="anchor-chapter1"></span>
-      <div class="checkpoint-dot" title="Copy bookmark for Chapter 1" onclick="copyCheckpoint('chapter1')"></div>
-      <div class="chapter-title">Chapter 1: Origins</div>
-      <div class="chapter-content">
-        <!-- Manifesto text here -->
-        Little is known about their identity beyond what they’ve told us...
-      </div>
+  <h1>Manifesto PDF Viewer</h1>
+
+  <div id="pdf-viewer">
+    <canvas id="pdf-canvas"></canvas>
+    <div class="controls">
+      <button id="prev">Previous</button>
+      <span id="page-info">Page <span id="page-num">1</span> of <span id="page-count">--</span></span>
+      <button id="next">Next</button>
     </div>
-    <div class="chapter" id="chapter2">
-      <span class="chapter-anchor" id="anchor-chapter2"></span>
-      <div class="checkpoint-dot" title="Copy bookmark for Chapter 2" onclick="copyCheckpoint('chapter2')"></div>
-      <div class="chapter-title">Chapter 2: Nightworld</div>
-      <div class="chapter-content">
-        <!-- Manifesto text here -->
-        Snake-boy left simultaneous posts on many prominent and infamous forums...
-      </div>
-    </div>
-    <div class="chapter" id="chapter3">
-      <span class="chapter-anchor" id="anchor-chapter3"></span>
-      <div class="checkpoint-dot" title="Copy bookmark for Chapter 3" onclick="copyCheckpoint('chapter3')"></div>
-      <div class="chapter-title">Chapter 3: IU's Diary</div>
-      <div class="chapter-content">
-        <!-- Manifesto text here -->
-        IU’s translated journal entries are presented here...
-      </div>
-    </div>
-    <!-- Add more chapters as needed -->
-  </main>
-  <footer>
-    <span class="footer-copy">&copy; 2025 Snakeboy, IU, & MainPhreaker</span>
-  </footer>
+  </div>
+
+  <!-- Local PDF.js scripts -->
+  <script src="pdf.min.js"></script>
   <script>
-    function copyCheckpoint(chapterId) {
-      const url = window.location.origin + window.location.pathname + '#' + chapterId;
-      navigator.clipboard.writeText(url);
-      alert("Bookmark for this chapter copied!");
+    // Configure worker path
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+
+    const PDF_FILE = 'Test_PDF.pdf';  // PDF filename (must match uploaded file)
+    const canvas = document.getElementById('pdf-canvas');
+    const ctx = canvas.getContext('2d');
+
+    const pageNumElem = document.getElementById('page-num');
+    const pageCountElem = document.getElementById('page-count');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+
+    let pdfDoc = null;
+    let pageNum = 1;
+    let scale = 1.2;
+    let isRendering = false;
+
+    // Load PDF
+    pdfjsLib.getDocument(PDF_FILE).promise.then(pdf => {
+      pdfDoc = pdf;
+      pageCountElem.textContent = pdf.numPages;
+      renderPage(pageNum);
+    }).catch(err => {
+      console.error('Error loading PDF:', err);
+      alert('Could not load PDF. Check the filename or path.');
+    });
+
+    function renderPage(num) {
+      isRendering = true;
+      pdfDoc.getPage(num).then(page => {
+        const viewport = page.getViewport({ scale });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderCtx = { canvasContext: ctx, viewport };
+        const renderTask = page.render(renderCtx);
+        return renderTask.promise;
+      }).then(() => {
+        isRendering = false;
+        pageNumElem.textContent = num;
+        prevBtn.disabled = num <= 1;
+        nextBtn.disabled = num >= pdfDoc.numPages;
+      });
     }
 
-    // Scroll to anchor on load, with offset for nav
-    window.onload = function() {
-      if (window.location.hash) {
-        var el = document.getElementById(window.location.hash.substring(1));
-        if (el) el.scrollIntoView({behavior: 'smooth'});
-      }
-    }
+    prevBtn.addEventListener('click', () => {
+      if (pageNum <= 1 || isRendering) return;
+      pageNum--;
+      renderPage(pageNum);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (pageNum >= pdfDoc.numPages || isRendering) return;
+      pageNum++;
+      renderPage(pageNum);
+    });
   </script>
 </body>
 </html>
