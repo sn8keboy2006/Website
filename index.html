@@ -27,52 +27,12 @@
       transition: background 0.2s ease, color 0.2s ease;
       box-sizing: border-box; /* THIS FIXES THE OVERFLOW */
     }
-
+    
     /* Update hover colors for new platforms */
     .share-item.reddit:hover { color: #FF4500; }
     .share-item.wa:hover { color: #25D366; }
     .share-item.kakao:hover { color: #FEE500; }
     .share-item.band:hover { color: #00C73C; }
-
-    /* Download menu styles */
-    .download-wrapper {
-      position: relative;
-      display: inline-block;
-    }
-
-    .download-menu {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      min-width: 160px;
-      background: #222;
-      border-radius: 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      z-index: 100;
-      padding: 0.2rem 0;
-    }
-
-    .download-menu .share-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      font-size: 14px;
-      font-weight: 500;
-      color: #eee;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      width: 100%;
-      text-align: left;
-      transition: background 0.2s ease, color 0.2s ease;
-    }
-
-    .download-menu .share-item:hover {
-      background: #333;
-      color: #1a73e8;
-    }
   </style>
 </head>
   
@@ -92,24 +52,24 @@
         <span class="hero-subtitle">The Manifesto</span>
       </div>
       <div class="hero-actions">
-        <!-- Download button with menu -->
-        <div class="download-wrapper">
-          <button class="manifesto-btn download-btn" onclick="toggleDownloadMenu()">
-            <i class="fa-solid fa-download"></i> Download
-          </button>
-          <div class="download-menu" id="downloadMenu">
-            <button class="share-item" onclick="downloadFile('pdfs/manifesto-dark.pdf')">
-              <i class="fa-solid fa-file-pdf"></i> Dark PDF
-            </button>
-            <button class="share-item" onclick="downloadFile('pdfs/manifesto-light.pdf')">
-              <i class="fa-solid fa-file-pdf"></i> Light PDF
-            </button>
-            <button class="share-item" onclick="downloadFile('pdfs/manifesto.epub')">
-              <i class="fa-solid fa-book"></i> EPUB
-            </button>
-          </div>
-        </div>
-
+  <!-- First make download button menu -->
+  <div class="share-wrapper"> <!-- reuse share-wrapper for styling -->
+    <button class="manifesto-btn share-btn" onclick="toggleDownloadMenu()">
+      <i class="fa-solid fa-download"></i> Download
+    </button>
+    <div class="share-menu" id="downloadMenu">
+      <a href="pdfs/manifesto-dark.pdf" download class="share-item fb">
+        <i class="fa-solid fa-file-pdf"></i> Dark PDF
+      </a>
+      <a href="pdfs/manifesto-light.pdf" download class="share-item tw">
+        <i class="fa-solid fa-file-pdf"></i> Light PDF
+      </a>
+      <a href="epubs/manifesto.epub" download class="share-item tb">
+        <i class="fa-solid fa-book"></i> EPUB
+      </a>
+    </div>
+  </div>
+        
         <button class="manifesto-btn" onclick="window.location.href='manifesto.html#page=1'">View</button>
 
         <!-- Share button + menu -->
@@ -156,14 +116,14 @@
   </footer>
 
   <script>
-    // Toggle Share menu
     function toggleShareMenu() {
       const menu = document.getElementById("shareMenu");
       menu.style.display = menu.style.display === "block" ? "none" : "block";
 
+      // fill in share links dynamically
       const pageUrl = encodeURIComponent(window.location.href);
       const pageTitle = encodeURIComponent(document.title);
-
+      
       document.querySelector(".share-item.fb").href = `https://www.facebook.com/sharer/sharer.php?u=${pageUrl}`;
       document.querySelector(".share-item.tw").href = `https://twitter.com/intent/tweet?url=${pageUrl}`;
       document.querySelector(".share-item.tb").href = `https://www.tumblr.com/widgets/share/tool?canonicalUrl=${pageUrl}`;
@@ -172,7 +132,6 @@
       document.querySelector(".share-item.band").href = `https://band.us/plugin/share?body=${pageTitle}%20${pageUrl}&route=${pageUrl}`;
     }
 
-    // Copy link
     function copyShareLink() {
       navigator.clipboard.writeText(window.location.href)
         .then(() => {
@@ -182,24 +141,13 @@
         });
     }
 
-    // Toggle Download menu
-    function toggleDownloadMenu() {
-      const menu = document.getElementById("downloadMenu");
-      menu.style.display = menu.style.display === "block" ? "none" : "block";
-    }
-
-    // Download file
-    function downloadFile(filePath) {
-      const link = document.createElement('a');
-      link.href = filePath;
-      link.download = filePath.split('/').pop();
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    // Close menus if clicked outside
+    // close menu if clicked outside
     document.addEventListener("click", (e) => {
-      const shareWrapper = document.querySelector(".share-wrapper");
-      const downloadWrapper = document.querySelector(".download-wrapper");
-      if (
+      const wrapper = document.querySelector(".share-wrapper");
+      if (!wrapper.contains(e.target)) {
+        document.getElementById("shareMenu").style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
