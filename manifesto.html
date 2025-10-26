@@ -134,16 +134,18 @@
 
     // Render all pages
     for (let i = 1; i <= pdfDoc.numPages; i++) {
-      const page = await pdfDoc.getPage(i);
-      const viewport = page.getViewport({ scale });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d', { alpha: false });
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      container.appendChild(canvas);
-      canvases.push({ pageNum: i, canvas });
-    }
+  const page = await pdfDoc.getPage(i);
+  const viewport = page.getViewport({ scale });
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width * dpr;
+  canvas.height = viewport.height * dpr;
+  const ctx = canvas.getContext('2d', { alpha: false });
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  container.appendChild(canvas);
+  canvases.push({ pageNum: i, canvas });
+}
 
     // Scroll to start page if it's not page 1
     if (startPage !== 1) {
