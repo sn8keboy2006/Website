@@ -134,58 +134,91 @@ const pageNumberText = document.getElementById('page-number-text');
 const bookmarkBtn = document.getElementById('bookmark-btn');
 
 let pdfDoc = null;
-let pageWrappers = [];
-let scale = 1.5;
+let pageElements = new Map();
 let currentPage = 1;
+let visiblePages = new Set();
 
 function parseHashPage() {
   const match = location.hash.match(/page=(\d+)/i);
   return match ? parseInt(match[1], 10) : 1;
 }
 
-function getCurrentPageInView() {
-  const scrollY = window.scrollY;
-  const viewportMiddle = scrollY + window.innerHeight / 2;
+function updateCurrentPage() {
+  if (visiblePages.size === 0) return;
   
-  for (let i = 0; i < pageWrappers.length; i++) {
-    const wrapper = pageWrappers[i];
-    const rect = wrapper.element.getBoundingClientRect();
-    const absoluteTop = scrollY + rect.top;
-    const absoluteBottom = absoluteTop + rect.height;
-    
-    if (viewportMiddle >= absoluteTop && viewportMiddle <= absoluteBottom) {
-      return wrapper.pageNum;
+  // Find the most centered visible page
+  let mostCentered = null;
+  let smallestDistance = Infinity;
+  const viewportCenter = window.innerHeight / 2;
+  
+  visiblePages.forEach(pageNum => {
+    const wrapper = pageElements.get(pageNum);
+    if (wrapper) {
+      const rect = wrapper.getBoundingClientRect();
+      const pageCenter = rect.top + rect.height / 2;
+      const distance = Math.abs(pageCenter - viewportCenter);
+      
+      if (distance < smallestDistance) {
+        smallestDistance = distance;
+        mostCentered = pageNum;
+      }
     }
-  }
+  });
   
-  return currentPage;
+  if (mostCentered !== null && mostCentered !== currentPage) {
+    currentPage = mostCentered;
+    updateDisplay();
+  }
 }
 
-function updatePageDisplay() {
-  currentPage = getCurrentPageInView();
+function updateDisplay() {
+  if (!pdfDoc) return;
   
-  if (pdfDoc) {
-    pageNumberText.textContent = `Page ${currentPage} / ${pdfDoc.numPages}`;
-    history.replaceState(null, '', `#page=${currentPage}`);
-    
-    // Show/hide page number based on scroll position
-    if (pageWrappers.length > 0) {
-      const firstPageRect = pageWrappers[0].element.getBoundingClientRect();
-      if (firstPageRect.bottom <= 0) {
-        pageNumberDisplay.classList.add('visible');
-      } else {
-        pageNumberDisplay.classList.remove('visible');
-      }
+  pageNumberText.textContent = `Page ${currentPage} / ${pdfDoc.numPages}`;
+  
+  // Update URL hash
+  const newHash = `#page=${currentPage}`;
+  if (location.hash !== newHash) {
+    history.replaceState(null, '', newHash);
+  }
+  
+  // Show/hide page number indicator
+  const firstPage = pageElements.get(1);
+  if (firstPage) {
+    const rect = firstPage.getBoundingClientRect();
+    if (rect.bottom <= 0) {
+      pageNumberDisplay.classList.add('visible');
+    } else {
+      pageNumberDisplay.classList.remove('visible');
     }
   }
 }
 
 async function renderAllPages() {
   container.innerHTML = '';
-  pageWrappers = [];
+  pageElements.clear();
   const startPage = parseHashPage();
 
   pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
+  
+  // Set up intersection observer
+  const observerOptions = {
+    root: null,
+    rootMargin: '-20% 0px -20% 0px',
+    threshold: 0
+  };
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const pageNum = parseInt(entry.target.dataset.pageNum);
+      if (entry.isIntersecting) {
+        visiblePages.add(pageNum);
+      } else {
+        visiblePages.delete(pageNum);
+      }
+    });
+    updateCurrentPage();
+  }, observerOptions);
 
   for (let i = 1; i <= pdfDoc.numPages; i++) {
     const page = await pdfDoc.getPage(i);
@@ -232,30 +265,24 @@ async function renderAllPages() {
     wrapper.appendChild(textLayerDiv);
     container.appendChild(wrapper);
     
-    pageWrappers.push({ pageNum: i, element: wrapper, canvas });
+    pageElements.set(i, wrapper);
+    observer.observe(wrapper);
   }
 
-  // Update initial display
-  updatePageDisplay();
+  // Initialize display
+  currentPage = startPage;
+  updateDisplay();
 
   // Scroll to start page if it's not page 1
   if (startPage !== 1) {
-    const targetWrapper = pageWrappers.find(w => w.pageNum === startPage);
+    const targetWrapper = pageElements.get(startPage);
     if (targetWrapper) {
       setTimeout(() => {
-        targetWrapper.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
-        setTimeout(updatePageDisplay, 100);
-      }, 50);
+        targetWrapper.scrollIntoView({ behavior: 'auto', block: 'center' });
+      }, 100);
     }
   }
 }
-
-// Throttle scroll updates for performance
-let scrollTimeout;
-window.addEventListener('scroll', () => {
-  if (scrollTimeout) clearTimeout(scrollTimeout);
-  scrollTimeout = setTimeout(updatePageDisplay, 50);
-});
 
 // Keyboard navigation
 window.addEventListener('keydown', e => {
@@ -270,9 +297,9 @@ window.addEventListener('keydown', e => {
     return;
   }
   
-  const targetWrapper = pageWrappers.find(w => w.pageNum === targetPage);
+  const targetWrapper = pageElements.get(targetPage);
   if (targetWrapper) {
-    targetWrapper.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    targetWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 });
 
@@ -280,9 +307,13 @@ window.addEventListener('keydown', e => {
 bookmarkBtn.addEventListener('click', () => {
   const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
   navigator.clipboard.writeText(bookmarkURL).then(() => {
+    const originalText = bookmarkBtn.textContent;
     bookmarkBtn.textContent = 'Copied!';
-    setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 2000);
-  }).catch(err => alert('Failed to copy link: ' + err));
+    setTimeout(() => { bookmarkBtn.textContent = originalText; }, 2000);
+  }).catch(err => {
+    console.error('Copy failed:', err);
+    alert('Failed to copy link: ' + err);
+  });
 });
 
 renderAllPages();
