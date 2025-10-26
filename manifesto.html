@@ -103,6 +103,14 @@
   </footer>
 
 <script type="module">
+/*
+  Full viewer with:
+  - invisible but selectable text layer
+  - extra vertical raise for text (EXTRA_PAGE_RAISE_PAGES)
+  - restored page tracker + bookmark + hash navigation + keyboard nav
+  Make sure pdf.mjs, pdf.worker.mjs and Test_PDF.pdf are in the same folder.
+*/
+
 import * as pdfjsLib from './pdf.mjs';
 pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
 
@@ -116,6 +124,10 @@ let pdfDoc = null;
 let canvases = [];
 let scale = 1.5;
 
+// HOW MUCH TO RAISE THE TEXT (in fractions of the page height).
+// 0.5 = raise by half a page (what you requested). Reduce if it's too much.
+const EXTRA_PAGE_RAISE_PAGES = 0.5;
+
 function parseHashPage() {
   const match = location.hash.match(/page=(\d+)/i);
   return match ? parseInt(match[1], 10) : 1;
@@ -125,6 +137,7 @@ function updatePageNumberInView() {
   if (!pdfDoc) return;
   const centerY = window.innerHeight / 2;
   let current = 1;
+
   for (const { pageNum, canvas } of canvases) {
     const rect = canvas.getBoundingClientRect();
     const canvasCenter = rect.top + rect.height / 2;
@@ -134,13 +147,22 @@ function updatePageNumberInView() {
     }
   }
 
-  pageNumberText.textContent = `Page ${current} / ${pdfDoc.numPages}`;
-  history.replaceState(null, '', `#page=${current}`);
+  // Update visible page text (only replace when changed to reduce history churn)
+  const newText = `Page ${current} / ${pdfDoc.numPages}`;
+  if (pageNumberText.textContent !== newText) {
+    pageNumberText.textContent = newText;
+    history.replaceState(null, '', `#page=${current}`);
+  }
 
+  // Fade-in page number when page 1 has scrolled out of view (same logic as original working file)
   const page1 = canvases.find(c => c.pageNum === 1);
   if (page1) {
     const rect = page1.canvas.getBoundingClientRect();
-    pageNumberDisplay.classList.toggle('visible', rect.bottom <= 0);
+    if (rect.bottom <= 0) {
+      pageNumberDisplay.classList.add('visible');
+    } else {
+      pageNumberDisplay.classList.remove('visible');
+    }
   }
 }
 
@@ -149,15 +171,20 @@ async function renderAllPages() {
   canvases = [];
   const startPage = parseHashPage();
 
-  pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
+  try {
+    pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
+  } catch (err) {
+    console.error('Failed to load PDF:', err);
+    container.textContent = 'Error loading PDF. Make sure Test_PDF.pdf is in the same folder.';
+    return;
+  }
 
   for (let i = 1; i <= pdfDoc.numPages; i++) {
     const page = await pdfDoc.getPage(i);
     const viewport = page.getViewport({ scale });
     const dpr = window.devicePixelRatio || 1;
 
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
+    // Create canvas and render
     canvas.width = viewport.width * dpr;
     canvas.height = viewport.height * dpr;
     canvas.style.width = viewport.width + 'px';
@@ -168,12 +195,11 @@ async function renderAllPages() {
     container.appendChild(canvas);
     canvases.push({ pageNum: i, canvas });
 
-    // Text layer
+    // Text layer overlay
     const textLayerDiv = document.createElement('div');
     textLayerDiv.className = 'textLayer';
     textLayerDiv.style.width = canvas.style.width;
     textLayerDiv.style.height = canvas.style.height;
-    // Position the textLayer at the same offset as the canvas
     textLayerDiv.style.top = canvas.offsetTop + 'px';
     textLayerDiv.style.left = canvas.offsetLeft + 'px';
     container.appendChild(textLayerDiv);
@@ -182,13 +208,17 @@ async function renderAllPages() {
     textContent.items.forEach(item => {
       const span = document.createElement('span');
       span.textContent = item.str;
+
       const [a, b, c, d, x, y] = item.transform;
       const fontHeight = item.height * scale;
 
       span.style.position = 'absolute';
       span.style.left = (x * scale) + 'px';
-      // raise text slightly to align with PDF baseline
-      span.style.top = (viewport.height - y - item.height * 0.3) * scale + 'px';
+
+      // ✅ Raise text layer higher — roughly half the page
+      const raiseAmount = viewport.height * EXTRA_PAGE_RAISE_PAGES;
+      span.style.top = (viewport.height - y - raiseAmount) * scale + 'px';
+
       span.style.fontSize = fontHeight + 'px';
       span.style.whiteSpace = 'pre';
       span.style.color = 'transparent';
@@ -196,20 +226,19 @@ async function renderAllPages() {
     });
   }
 
-  // scroll to start page
+  // Scroll to hash page if present
   if (startPage !== 1) {
     const targetCanvas = canvases.find(c => c.pageNum === startPage);
     if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
   }
 
-  // keep page-number updates in sync with window scroll
-  window.addEventListener('scroll', updatePageNumberInView, { passive: true });
-  // also update on resize (viewport center changes)
-  window.addEventListener('resize', updatePageNumberInView);
+  // Hook up scrolling and page-number tracker (same behavior as original working version)
+  container.addEventListener('scroll', updatePageNumberInView);
+  window.addEventListener('scroll', updatePageNumberInView);
   updatePageNumberInView();
 }
 
-// Keyboard navigation
+// Keyboard navigation (left/right or PageUp/PageDown)
 window.addEventListener('keydown', e => {
   if (!pdfDoc) return;
   const visiblePage = canvases.find(c => {
@@ -221,12 +250,11 @@ window.addEventListener('keydown', e => {
   let targetPage = visiblePage.pageNum;
   if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
   if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
-
   const targetCanvas = canvases.find(c => c.pageNum === targetPage);
   if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
-// Bookmark button functionality
+// Bookmark button
 bookmarkBtn.addEventListener('click', () => {
   const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
   const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
@@ -236,10 +264,7 @@ bookmarkBtn.addEventListener('click', () => {
   }).catch(err => alert('Failed to copy link: ' + err));
 });
 
-renderAllPages().catch(err => {
-  console.error('Failed to load PDF:', err);
-  container.textContent = 'Error loading PDF. Make sure Test_PDF.pdf is in the same folder.';
-});
+renderAllPages();
 </script>
 </body>
 </html>
