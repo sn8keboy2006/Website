@@ -144,17 +144,12 @@
   });
 
   // Bookmark button functionality
-bookmarkBtn.addEventListener('click', () => {
-  const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
-  const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
-  navigator.clipboard.writeText(bookmarkURL).then(() => {
-    alert('URL copied! Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.');
-  });
-});
-
+  bookmarkBtn.addEventListener('click', () => {
+    const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
+    const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
     // Copy to clipboard
     navigator.clipboard.writeText(bookmarkURL).then(() => {
-      bookmarkBtn.textContent = '✅';
+      bookmarkBtn.textContent = 'Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.';
       setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 1000);
     }).catch(err => {
       alert('Failed to copy link: ' + err);
