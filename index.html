@@ -29,6 +29,7 @@
     }
     
     /* Update hover colors for new platforms */
+    .share-item.reddit:hover { color: #FF4500; }
     .share-item.wa:hover { color: #25D366; }
     .share-item.kakao:hover { color: #FEE500; }
     .share-item.band:hover { color: #00C73C; }
@@ -72,18 +73,21 @@
             <a href="#" target="_blank" class="share-item tb">
               <i class="fab fa-tumblr"></i> Tumblr
             </a>
-            <button class="share-item copy" onclick="copyShareLink()">
-              <i class="fa-solid fa-link"></i> Copy Link
-            </button>
+            <a href="#" target="_blank" class="share-item reddit">
+              <i class="fab fa-reddit"></i> Reddit
+            </a>
             <a href="#" target="_blank" class="share-item wa">
               <i class="fab fa-whatsapp"></i> WhatsApp
-            </a>
-            <a href="#" target="_blank" class="share-item kakao">
-              <i class="fas fa-comment"></i> KakaoTalk
             </a>
             <a href="#" target="_blank" class="share-item band">
               <i class="fas fa-users"></i> Naver Band
             </a>
+            <a href="https://story.kakao.com" target="_blank" class="share-item kakao">
+              <i class="fas fa-comment"></i> KakaoTalk Story
+            </a>
+            <button class="share-item copy" onclick="copyShareLink()">
+              <i class="fa-solid fa-link"></i> Copy Link
+            </button>
           </div>
         </div>
       </div>
@@ -109,8 +113,8 @@
       document.querySelector(".share-item.fb").href = `https://www.facebook.com/sharer/sharer.php?u=${pageUrl}`;
       document.querySelector(".share-item.tw").href = `https://twitter.com/intent/tweet?url=${pageUrl}`;
       document.querySelector(".share-item.tb").href = `https://www.tumblr.com/widgets/share/tool?canonicalUrl=${pageUrl}`;
+      document.querySelector(".share-item.reddit").href = `https://reddit.com/submit?url=${pageUrl}&title=${pageTitle}`;
       document.querySelector(".share-item.wa").href = `https://wa.me/?text=${pageTitle}%20${pageUrl}`;
-      document.querySelector(".share-item.kakao").href = `https://story.kakao.com/share?url=${pageUrl}`;
       document.querySelector(".share-item.band").href = `https://band.us/plugin/share?body=${pageTitle}%20${pageUrl}&route=${pageUrl}`;
     }
 
