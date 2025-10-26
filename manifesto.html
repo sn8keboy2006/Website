@@ -20,21 +20,28 @@
     gap: 2rem;
   }
 
+  .page-wrapper {
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
   canvas {
     box-shadow: 0 6px 20px rgba(0,0,0,0.6);
     border-radius: 12px;
     background: #232a35;
     width: 100%;
+    display: block;
   }
 
   .textLayer {
     position: absolute;
     top: 0;
     left: 0;
+    right: 0;
+    bottom: 0;
     pointer-events: auto;
     user-select: text;
     color: transparent;
-    font-family: sans-serif;
   }
 
   .page-number {
@@ -91,6 +98,8 @@
 
 <script type="module">
 import * as pdfjsLib from './pdf.mjs';
+import { PDFJS } from './pdf.mjs';
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
 
 const PDF_URL = './Test_PDF.pdf';
@@ -100,8 +109,8 @@ const pageNumberText = document.getElementById('page-number-text');
 const bookmarkBtn = document.getElementById('bookmark-btn');
 
 let pdfDoc = null;
-let canvases = [];
-let scale = 1.5; // High DPI
+let pageWrappers = [];
+let scale = 1.5;
 
 function parseHashPage() {
   const match = location.hash.match(/page=(\d+)/i);
@@ -111,29 +120,25 @@ function parseHashPage() {
 function updatePageNumberInView() {
   const centerY = window.innerHeight / 2;
   let current = 1;
-  for (const { pageNum, canvas } of canvases) {
-    const rect = canvas.getBoundingClientRect();
+  for (const wrapper of pageWrappers) {
+    const rect = wrapper.canvas.getBoundingClientRect();
     const canvasCenter = rect.top + rect.height / 2;
     if (Math.abs(canvasCenter - centerY) < rect.height / 2) {
-      current = pageNum;
+      current = wrapper.pageNum;
       break;
     }
   }
-
   pageNumberText.textContent = `Page ${current} / ${pdfDoc.numPages}`;
   history.replaceState(null, '', `#page=${current}`);
 
-  // Fade-in page number after page 1
-  const page1 = canvases.find(c => c.pageNum === 1);
-  if (page1) {
-    const rect = page1.canvas.getBoundingClientRect();
-    pageNumberDisplay.classList.toggle('visible', rect.bottom <= 0);
-  }
+  // Fade-in after page 1
+  const page1Rect = pageWrappers[0].canvas.getBoundingClientRect();
+  pageNumberDisplay.classList.toggle('visible', page1Rect.bottom <= 0);
 }
 
 async function renderAllPages() {
   container.innerHTML = '';
-  canvases = [];
+  pageWrappers = [];
   const startPage = parseHashPage();
 
   pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
@@ -143,7 +148,11 @@ async function renderAllPages() {
     const viewport = page.getViewport({ scale });
     const dpr = window.devicePixelRatio || 1;
 
-    // Canvas
+    const pageWrapper = document.createElement('div');
+    pageWrapper.className = 'page-wrapper';
+    pageWrapper.style.width = viewport.width + 'px';
+    pageWrapper.style.height = viewport.height + 'px';
+
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width * dpr;
     canvas.height = viewport.height * dpr;
@@ -152,42 +161,29 @@ async function renderAllPages() {
     const ctx = canvas.getContext('2d', { alpha: false });
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     await page.render({ canvasContext: ctx, viewport }).promise;
-    container.appendChild(canvas);
-    canvases.push({ pageNum: i, canvas, viewport, scale, dpr });
+    pageWrapper.appendChild(canvas);
 
-    // Text layer
     const textLayerDiv = document.createElement('div');
     textLayerDiv.className = 'textLayer';
-    textLayerDiv.style.width = canvas.style.width;
-    textLayerDiv.style.height = canvas.style.height;
-    textLayerDiv.style.position = 'absolute';
-    textLayerDiv.style.top = canvas.offsetTop + 'px';
-    textLayerDiv.style.left = canvas.offsetLeft + 'px';
-    container.appendChild(textLayerDiv);
+    pageWrapper.appendChild(textLayerDiv);
 
     const textContent = await page.getTextContent();
-    textContent.items.forEach(item => {
-      const span = document.createElement('span');
-      span.textContent = item.str;
-
-      // Proper alignment with canvas
-      const [a, b, c, d, x, y] = item.transform;
-      const fontHeight = item.height * scale * dpr;
-      span.style.position = 'absolute';
-      span.style.left = (x * scale * dpr) + 'px';
-      span.style.top = ((viewport.height - y) * scale * dpr) + 'px';
-      span.style.fontSize = fontHeight + 'px';
-      span.style.whiteSpace = 'pre';
-      span.style.color = 'transparent';
-
-      textLayerDiv.appendChild(span);
+    pdfjsLib.renderTextLayer({
+      textContent,
+      container: textLayerDiv,
+      viewport,
+      textDivs: [],
+      enhanceTextSelection: true
     });
+
+    container.appendChild(pageWrapper);
+    pageWrappers.push({ pageNum: i, canvas });
   }
 
-  // Scroll to start page
+  // Scroll to start page if not 1
   if (startPage !== 1) {
-    const targetCanvas = canvases.find(c => c.pageNum === startPage);
-    if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
+    const targetWrapper = pageWrappers.find(p => p.pageNum === startPage);
+    if (targetWrapper) targetWrapper.canvas.scrollIntoView({ behavior: 'auto', block: 'start' });
   }
 
   window.addEventListener('scroll', updatePageNumberInView);
@@ -196,8 +192,8 @@ async function renderAllPages() {
 
 window.addEventListener('keydown', e => {
   if (!pdfDoc) return;
-  const visiblePage = canvases.find(c => {
-    const rect = c.canvas.getBoundingClientRect();
+  const visiblePage = pageWrappers.find(w => {
+    const rect = w.canvas.getBoundingClientRect();
     return rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
   });
   if (!visiblePage) return;
@@ -205,8 +201,8 @@ window.addEventListener('keydown', e => {
   let targetPage = visiblePage.pageNum;
   if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
   if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
-  const targetCanvas = canvases.find(c => c.pageNum === targetPage);
-  if (targetCanvas) targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const targetWrapper = pageWrappers.find(p => p.pageNum === targetPage);
+  if (targetWrapper) targetWrapper.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
 bookmarkBtn.addEventListener('click', () => {
