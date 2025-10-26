@@ -9,102 +9,7 @@
   <!-- Font Awesome for share icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #121212;
-      color: #eee;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    nav {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      padding: 1rem;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(8px);
-    }
-
-    nav a {
-      color: #eee;
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
-    nav a:hover {
-      color: #bbb;
-    }
-
-    .hero {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 2rem 1rem;
-      flex-grow: 1;
-    }
-
-    .hero-title {
-      font-size: 2.5rem;
-      line-height: 1.2;
-      margin-bottom: 1rem;
-    }
-
-    .hero-subtitle {
-      font-size: 1.2rem;
-      color: #aaa;
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    .manifesto-btn {
-      background: none;
-      border: 1px solid #eee;
-      color: #eee;
-      padding: 0.6rem 1.2rem;
-      font-size: 1rem;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background 0.2s, color 0.2s;
-    }
-
-    .manifesto-btn:hover {
-      background: #eee;
-      color: #121212;
-    }
-
-    /* Share Menu */
-    .share-wrapper {
-      position: relative;
-    }
-
-    .share-menu {
-      display: none;
-      position: absolute;
-      top: 110%;
-      left: 0;
-      background: rgba(0, 0, 0, 0.85);
-      border: 1px solid #333;
-      border-radius: 6px;
-      backdrop-filter: blur(6px);
-      z-index: 100;
-      width: 200px;
-      max-height: 60vh; /* allow scroll if too tall */
-      overflow-y: auto;
-    }
-
+    /* Fix overflow issue - add to your existing styles */
     .share-item {
       display: flex;
       align-items: center;
@@ -120,37 +25,26 @@
       width: 100%;
       text-align: left;
       transition: background 0.2s ease, color 0.2s ease;
-      box-sizing: border-box;
+      box-sizing: border-box; /* THIS FIXES THE OVERFLOW */
     }
-
-    .share-item:hover { background: rgba(255, 255, 255, 0.1); }
+    
+    /* Update hover colors for new platforms */
     .share-item.reddit:hover { color: #FF4500; }
     .share-item.wa:hover { color: #25D366; }
     .share-item.kakao:hover { color: #FEE500; }
     .share-item.band:hover { color: #00C73C; }
-
-    footer {
-      text-align: center;
-      font-size: 0.9rem;
-      padding: 0.8rem;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(8px);
-    }
-
-    .footer-viewcount {
-      margin-left: 1rem;
-      color: #999;
-    }
   </style>
 </head>
   
 <body class="index-page">
+  <!-- Infinity symbol background -->
+  <div class="infinity-bg"></div>
+
   <nav>
     <a href="about.html">About</a>
     <a href="index.html">Manifesto</a>
     <a href="threads.html">Threads</a>
   </nav>
-
   <div class="hero">
     <div class="hero-content">
       <div class="hero-title">
@@ -196,10 +90,12 @@
       </div>
     </div>
   </div>
-
+  <main>
+    <!-- Add any homepage content here -->
+  </main>
   <footer>
-    <span class="footer-copy">&copy; 2025</span>
-    <span class="footer-viewcount">Views: <span id="view-count">1268</span> | Downloads: <span id="download-count">347</span></span>
+    <span class="footer-copy">&copy; 2025 </span>
+    <span class="footer-viewcount">Views: <span id="view-count">1268</span> | Downloads: <span id="view-count">347</span> </span>
   </footer>
 
   <script>
@@ -207,6 +103,7 @@
       const menu = document.getElementById("shareMenu");
       menu.style.display = menu.style.display === "block" ? "none" : "block";
 
+      // fill in share links dynamically
       const pageUrl = encodeURIComponent(window.location.href);
       const pageTitle = encodeURIComponent(document.title);
       
@@ -227,6 +124,7 @@
         });
     }
 
+    // close menu if clicked outside
     document.addEventListener("click", (e) => {
       const wrapper = document.querySelector(".share-wrapper");
       if (!wrapper.contains(e.target)) {
@@ -236,3 +134,4 @@
   </script>
 </body>
 </html>
+
