@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Manifesto PDF Viewer</title>
+<title>The Manifesto</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <style>
@@ -293,7 +293,7 @@ window.addEventListener('keydown', e => {
 bookmarkBtn.addEventListener('click', () => {
   const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPageNum}`;
   navigator.clipboard.writeText(bookmarkURL).then(() => {
-    bookmarkBtn.textContent = '✓ Copied! Press Ctrl+D (or Cmd+D on Mac) to bookmark';
+    bookmarkBtn.textContent = '✓ Copied! Press Ctrl+D (PC) or Cmd+D (Mac) to bookmark';
     setTimeout(() => { bookmarkBtn.textContent = '📌 Bookmark'; }, 4000);
   }).catch(err => {
     alert('Failed to copy link: ' + err);
