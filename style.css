@@ -153,8 +153,8 @@ footer {
 .hero {
   position: relative;
   text-align: center;
-  padding: 2.5rem 2rem 2.5rem 2rem;
-  margin-top: -3rem;
+  padding: 1rem 2rem 2.5rem 2rem;
+  margin-top: 0rem;
   margin-bottom: 2rem;
   background: transparent;
   box-shadow: 0 4px 32px rgba(34,45,58,0.20);
