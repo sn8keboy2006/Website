@@ -134,40 +134,55 @@ const pageNumberText = document.getElementById('page-number-text');
 const bookmarkBtn = document.getElementById('bookmark-btn');
 
 let pdfDoc = null;
-let canvases = [];
+let pageWrappers = [];
 let scale = 1.5;
+let currentPage = 1;
 
 function parseHashPage() {
   const match = location.hash.match(/page=(\d+)/i);
   return match ? parseInt(match[1], 10) : 1;
 }
 
-function updatePageNumberInView() {
-  const centerY = window.innerHeight / 2;
-  let current = 1;
-  for (const { pageNum, canvas } of canvases) {
-    const rect = canvas.getBoundingClientRect();
-    const canvasCenter = rect.top + rect.height / 2;
-    if (Math.abs(canvasCenter - centerY) < rect.height / 2) {
-      current = pageNum;
-      break;
+function getCurrentPageInView() {
+  const scrollY = window.scrollY;
+  const viewportMiddle = scrollY + window.innerHeight / 2;
+  
+  for (let i = 0; i < pageWrappers.length; i++) {
+    const wrapper = pageWrappers[i];
+    const rect = wrapper.element.getBoundingClientRect();
+    const absoluteTop = scrollY + rect.top;
+    const absoluteBottom = absoluteTop + rect.height;
+    
+    if (viewportMiddle >= absoluteTop && viewportMiddle <= absoluteBottom) {
+      return wrapper.pageNum;
     }
   }
+  
+  return currentPage;
+}
 
-  pageNumberText.textContent = `Page ${current} / ${pdfDoc.numPages}`;
-  history.replaceState(null, '', `#page=${current}`);
-
-  // Fade-in page number after page 1
-  const page1 = canvases.find(c => c.pageNum === 1);
-  if (page1) {
-    const rect = page1.canvas.getBoundingClientRect();
-    pageNumberDisplay.classList.toggle('visible', rect.bottom <= 0);
+function updatePageDisplay() {
+  currentPage = getCurrentPageInView();
+  
+  if (pdfDoc) {
+    pageNumberText.textContent = `Page ${currentPage} / ${pdfDoc.numPages}`;
+    history.replaceState(null, '', `#page=${currentPage}`);
+    
+    // Show/hide page number based on scroll position
+    if (pageWrappers.length > 0) {
+      const firstPageRect = pageWrappers[0].element.getBoundingClientRect();
+      if (firstPageRect.bottom <= 0) {
+        pageNumberDisplay.classList.add('visible');
+      } else {
+        pageNumberDisplay.classList.remove('visible');
+      }
+    }
   }
 }
 
 async function renderAllPages() {
   container.innerHTML = '';
-  canvases = [];
+  pageWrappers = [];
   const startPage = parseHashPage();
 
   pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
@@ -180,6 +195,7 @@ async function renderAllPages() {
     // Create wrapper for canvas + text layer
     const wrapper = document.createElement('div');
     wrapper.className = 'page-wrapper';
+    wrapper.dataset.pageNum = i;
 
     // Canvas
     const canvas = document.createElement('canvas');
@@ -192,7 +208,6 @@ async function renderAllPages() {
     await page.render({ canvasContext: ctx, viewport }).promise;
     
     wrapper.appendChild(canvas);
-    canvases.push({ pageNum: i, canvas });
 
     // Text layer overlay
     const textLayerDiv = document.createElement('div');
@@ -216,49 +231,57 @@ async function renderAllPages() {
 
     wrapper.appendChild(textLayerDiv);
     container.appendChild(wrapper);
+    
+    pageWrappers.push({ pageNum: i, element: wrapper, canvas });
   }
+
+  // Update initial display
+  updatePageDisplay();
 
   // Scroll to start page if it's not page 1
   if (startPage !== 1) {
-    const targetCanvas = canvases.find(c => c.pageNum === startPage);
-    if (targetCanvas) {
+    const targetWrapper = pageWrappers.find(w => w.pageNum === startPage);
+    if (targetWrapper) {
       setTimeout(() => {
-        targetCanvas.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
-        updatePageNumberInView();
-      }, 100);
+        targetWrapper.canvas.scrollIntoView({ behavior: 'auto', block: 'center' });
+        setTimeout(updatePageDisplay, 100);
+      }, 50);
     }
-  } else {
-    updatePageNumberInView();
   }
 }
 
-// Set up scroll listener once
-window.addEventListener('scroll', updatePageNumberInView);
+// Throttle scroll updates for performance
+let scrollTimeout;
+window.addEventListener('scroll', () => {
+  if (scrollTimeout) clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(updatePageDisplay, 50);
+});
 
+// Keyboard navigation
 window.addEventListener('keydown', e => {
   if (!pdfDoc) return;
-  const visiblePage = canvases.find(c => {
-    const rect = c.canvas.getBoundingClientRect();
-    return rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2;
-  });
-  if (!visiblePage) return;
-
-  let targetPage = visiblePage.pageNum;
-  if (e.key === 'ArrowRight' || e.key === 'PageDown') targetPage = Math.min(pdfDoc.numPages, targetPage + 1);
-  if (e.key === 'ArrowLeft' || e.key === 'PageUp') targetPage = Math.max(1, targetPage - 1);
-  const targetCanvas = canvases.find(c => c.pageNum === targetPage);
-  if (targetCanvas) {
-    targetCanvas.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(updatePageNumberInView, 100);
+  
+  let targetPage = currentPage;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+    targetPage = Math.min(pdfDoc.numPages, currentPage + 1);
+  } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+    targetPage = Math.max(1, currentPage - 1);
+  } else {
+    return;
+  }
+  
+  const targetWrapper = pageWrappers.find(w => w.pageNum === targetPage);
+  if (targetWrapper) {
+    targetWrapper.canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 });
 
+// Bookmark button
 bookmarkBtn.addEventListener('click', () => {
-  const currentPage = location.hash.match(/page=(\d+)/)?.[1] || 1;
   const bookmarkURL = `${location.origin}${location.pathname}#page=${currentPage}`;
   navigator.clipboard.writeText(bookmarkURL).then(() => {
-    bookmarkBtn.textContent = 'Press Ctrl+D (Windows) or Cmd+D (Mac) to bookmark this page.';
-    setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 5000);
+    bookmarkBtn.textContent = 'Copied!';
+    setTimeout(() => { bookmarkBtn.textContent = '📌'; }, 2000);
   }).catch(err => alert('Failed to copy link: ' + err));
 });
 
