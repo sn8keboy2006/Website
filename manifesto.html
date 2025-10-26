@@ -39,6 +39,14 @@
     display: flex;
     align-items: center;
     gap: 8px;
+
+    /* Fade-in setup */
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+  }
+
+  .page-number.visible {
+    opacity: 1;
   }
 
   .bookmark-btn {
@@ -104,8 +112,21 @@
         break;
       }
     }
+
+    // Update page number text
     pageNumberDisplay.childNodes[0].nodeValue = `Page ${current} / ${pdfDoc.numPages} `;
     history.replaceState(null, '', `#page=${current}`);
+
+    // Fade-in logic: show after bottom of page 1 is passed
+    const page1 = canvases.find(c => c.pageNum === 1);
+    if (page1) {
+      const rect = page1.canvas.getBoundingClientRect();
+      if (rect.bottom <= 0) {
+        pageNumberDisplay.classList.add('visible');
+      } else {
+        pageNumberDisplay.classList.remove('visible');
+      }
+    }
   }
 
   async function renderAllPages() {
@@ -130,6 +151,7 @@
 
     container.addEventListener('scroll', () => updatePageNumberInView());
     updatePageNumberInView();
+    window.addEventListener('scroll', updatePageNumberInView);
   }
 
   window.addEventListener('keydown', e => {
