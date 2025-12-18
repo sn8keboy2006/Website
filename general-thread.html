@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>General/Miscellaneous Thread</title>
+  <title>General Thread</title>
   <link rel="stylesheet" href="style.css">
   <style>
     html, body {
@@ -374,7 +374,7 @@
   <script>
     const API_URL = 'https://thread-comments.thread-backend.workers.dev/api';
     const THREAD_NAME = 'general';
-    const COMMENTS_PER_PAGE = 20;
+    const ITEMS_PER_PAGE = 25;
     let adminPassword = '';
     let isAdminLoggedIn = false;
 
@@ -443,13 +443,60 @@
     let currentPage = 1;
     let allComments = [];
 
+    function countTotalItems(comments) {
+      let total = 0;
+      comments.forEach(comment => {
+        total++;
+        total += countReplies(comment.replies);
+      });
+      return total;
+    }
+
+    function countReplies(replies) {
+      if (!replies || replies.length === 0) return 0;
+      let count = replies.length;
+      replies.forEach(reply => {
+        count += countReplies(reply.replies);
+      });
+      return count;
+    }
+
+    function flattenCommentsWithCounts(comments) {
+      return comments.map(comment => ({
+        comment: comment,
+        totalItems: 1 + countReplies(comment.replies)
+      }));
+    }
+
+    function paginateComments(comments) {
+      const flattened = flattenCommentsWithCounts(comments);
+      const pages = [];
+      let currentPageItems = [];
+      let currentPageCount = 0;
+
+      for (let i = 0; i < flattened.length; i++) {
+        const item = flattened[i];
+        
+        if (currentPageCount > 0 && currentPageCount + item.totalItems > ITEMS_PER_PAGE) {
+          pages.push(currentPageItems);
+          currentPageItems = [];
+          currentPageCount = 0;
+        }
+        
+        currentPageItems.push(item.comment);
+        currentPageCount += item.totalItems;
+      }
+
+      if (currentPageItems.length > 0) {
+        pages.push(currentPageItems);
+      }
+
+      return pages;
+    }
+
     function setPage(page) {
       currentPage = page;
       renderComments();
-    }
-
-    function getTotalPages(comments) {
-      return Math.max(1, Math.ceil(comments.length / COMMENTS_PER_PAGE));
     }
 
     function formatDateUSCentral(dt) {
@@ -505,12 +552,13 @@
       const commentList = document.getElementById('commentList');
       commentList.innerHTML = '';
       
-      const totalPages = getTotalPages(allComments);
+      const pages = paginateComments(allComments);
+      const totalPages = Math.max(1, pages.length);
+      
       if (currentPage > totalPages) currentPage = totalPages;
       
-      const startIdx = allComments.length - (currentPage * COMMENTS_PER_PAGE);
-      const endIdx = allComments.length - ((currentPage - 1) * COMMENTS_PER_PAGE);
-      const pageComments = allComments.slice(Math.max(0, startIdx), endIdx);
+      const pageIndex = totalPages - currentPage;
+      const pageComments = pages[pageIndex] || [];
 
       pageComments.forEach(comment => {
         const li = document.createElement('li');
