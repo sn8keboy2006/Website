@@ -52,7 +52,26 @@
         <span class="hero-subtitle">The Manifesto</span>
       </div>
       <div class="hero-actions">
-        <a class="manifesto-btn" href="pdfs/manifesto.pdf" target="_blank">Download</a>
+        <!-- Download button + menu -->
+        <div class="share-wrapper">
+          <button class="manifesto-btn download-btn" onclick="toggleDownloadMenu()">
+            <i class="fa-solid fa-download"></i> Download
+          </button>
+          <div class="share-menu" id="downloadMenu">
+            <a href="pdfs/manifesto.pdf" target="_blank" class="share-item">
+              <i class="fa-solid fa-file-pdf"></i> PDF (Black)
+            </a>
+            <a href="pdfs/manifesto-white.pdf" target="_blank" class="share-item">
+              <i class="fa-solid fa-file-pdf"></i> PDF (White)
+            </a>
+            <a href="docs/manifesto.docx" target="_blank" class="share-item">
+              <i class="fa-solid fa-file-word"></i> Word Document
+            </a>
+            <a href="docs/manifesto.epub" target="_blank" class="share-item">
+              <i class="fa-solid fa-book"></i> EPUB
+            </a>
+          </div>
+        </div>
         <button class="manifesto-btn" onclick="window.location.href='manifesto.html#page=1'">View</button>
 
         <!-- Share button + menu -->
@@ -99,6 +118,11 @@
   </footer>
 
   <script>
+    function toggleDownloadMenu() {
+      const menu = document.getElementById("downloadMenu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    }
+
     function toggleShareMenu() {
       const menu = document.getElementById("shareMenu");
       menu.style.display = menu.style.display === "block" ? "none" : "block";
@@ -124,11 +148,22 @@
         });
     }
 
-    // close menu if clicked outside
+    // close menus if clicked outside
     document.addEventListener("click", (e) => {
-      const wrapper = document.querySelector(".share-wrapper");
-      if (!wrapper.contains(e.target)) {
-        document.getElementById("shareMenu").style.display = "none";
+      const wrappers = document.querySelectorAll(".share-wrapper");
+      const downloadMenu = document.getElementById("downloadMenu");
+      const shareMenu = document.getElementById("shareMenu");
+      
+      let clickedInsideAny = false;
+      wrappers.forEach(wrapper => {
+        if (wrapper.contains(e.target)) {
+          clickedInsideAny = true;
+        }
+      });
+      
+      if (!clickedInsideAny) {
+        if (downloadMenu) downloadMenu.style.display = "none";
+        if (shareMenu) shareMenu.style.display = "none";
       }
     });
   </script>
