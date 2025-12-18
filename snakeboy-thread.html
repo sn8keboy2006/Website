@@ -109,19 +109,35 @@
       margin-top: 0.3em;
       margin-bottom: 0.3em;
     }
+    /* Nested reply styling - up to 4 levels */
     .reply-list {
       list-style: none;
-      padding: 0 0 0 2em;
+      padding: 0 0 0 1.5em;
       margin: 0.5em 0 0 0;
       width: 100%;
       box-sizing: border-box;
       display: block;
-      min-width: 100%;
+      font-size: 0.95em;
+      border-left: 2px solid #353c48;
+    }
+    .reply-list .reply-list {
+      font-size: 0.95em;
+      padding-left: 1.2em;
+      border-left: 2px solid #2a3340;
+    }
+    .reply-list .reply-list .reply-list {
+      font-size: 0.95em;
+      padding-left: 1em;
+      border-left: 2px solid #222930;
+    }
+    .reply-list .reply-list .reply-list .reply-list {
+      font-size: 1em;
+      padding-left: 0.8em;
+      border-left: 1px solid #1d2229;
     }
     .reply-form {
       margin-top: 0.6em;
       margin-bottom: 0.6em;
-      padding-left: 2em;
       width: 100%;
       box-sizing: border-box;
     }
@@ -175,6 +191,27 @@
       color: #bcd2e8;
       font-size: 0.98em;
     }
+    .admin-login {
+      margin-bottom: 1.5em;
+      padding: 1em;
+      background: #181818;
+      border-radius: 8px;
+      border: 1px solid #353c48;
+    }
+    .admin-input {
+      padding: 0.5em;
+      border-radius: 6px;
+      border: 1px solid #353c48;
+      background: #232a35;
+      color: #f8f8f8;
+      margin-right: 0.5em;
+      font-family: inherit;
+    }
+    .admin-status {
+      color: #4d9;
+      font-weight: 600;
+      margin-left: 0.5em;
+    }
     @media (max-width: 900px) {
       .comments-section {
         max-width: 95vw;
@@ -182,6 +219,18 @@
         min-width: unset;
         margin: 5vw auto;
         padding: 1vw;
+      }
+      .reply-list {
+        padding-left: 1em;
+      }
+      .reply-list .reply-list {
+        padding-left: 0.8em;
+      }
+      .reply-list .reply-list .reply-list {
+        padding-left: 0.6em;
+      }
+      .reply-list .reply-list .reply-list .reply-list {
+        padding-left: 0.5em;
       }
     }
   </style>
@@ -196,12 +245,21 @@
   <main>
     <h1>Snakeboy's Posts</h1>
     <section class="comments-section">
+      <div class="admin-login">
+        <label>Admin Password: 
+          <input type="password" id="adminPassword" class="admin-input" placeholder="Enter admin password">
+          <button onclick="checkAdmin()" class="comment-btn" style="margin: 0;">Login</button>
+          <span id="adminStatus" class="admin-status"></span>
+        </label>
+      </div>
+      
       <div class="captcha-toggle-row">
         <label>
           <input type="checkbox" id="captchaToggle" checked>
           Enable reCAPTCHA for posting
         </label>
       </div>
+      
       <form id="commentForm" class="comment-form">
         <textarea id="commentText" class="comment-textarea" placeholder="Share your thoughts or reply to Snakeboy..." required></textarea>
         <div id="captchaSection">
@@ -210,6 +268,7 @@
         <div id="captchaError" class="captcha-error"></div>
         <button type="submit" class="comment-btn">Post Comment</button>
       </form>
+      
       <ul id="commentList" class="comment-list"></ul>
       <div class="pagination" id="pagination"></div>
     </section>
@@ -217,71 +276,68 @@
   <footer>
     &copy; 2025 MainPhreaker
   </footer>
+  
   <script>
     // --- CONFIG ---
+    const API_URL = 'https://thread-comments.thread-backend.workers.dev'; // Update this to your server URL
+    const THREAD_NAME = 'snakeboy';
     const COMMENTS_PER_PAGE = 20;
-    const ADMIN_USER = 'sn8keboy2006';
-    window.disableCaptcha = false;
+    let adminPassword = '';
+    let isAdminLoggedIn = false;
 
-    // Toggle logic
+    // Toggle captcha
     const captchaToggle = document.getElementById('captchaToggle');
-    captchaToggle.checked = !window.disableCaptcha;
+    let disableCaptcha = false;
+    
     captchaToggle.addEventListener('change', function() {
-      window.disableCaptcha = !captchaToggle.checked;
-      document.getElementById('captchaSection').style.display = window.disableCaptcha ? "none" : "block";
+      disableCaptcha = !captchaToggle.checked;
+      document.getElementById('captchaSection').style.display = disableCaptcha ? "none" : "block";
     });
-    document.getElementById('captchaSection').style.display = window.disableCaptcha ? "none" : "block";
 
-    function isAdmin() {
-      if (window.isBackendAdmin === true) return true;
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('admin') === ADMIN_USER) return true;
-      return false;
-    }
-
-    // --- DATA, PAGINATION, FORMAT, RENDER: (same as previous answers) ---
-    function loadComments() {
-      let comments = JSON.parse(localStorage.getItem('snakeboyThreadComments') || '[]');
-      if (!comments || comments.length === 0) {
-        comments = [
-          {
-            id: Date.now(),
-            body: "Before this shit gets too out of hand, I just want to say that there’s no f***ing way this is real. Like no way.",
-            date: "2025-09-20",
-            replies: [
-              {
-                id: Date.now() + 1,
-                body: "Maybe he's not in highschool",
-                date: "2025-09-20"
-              }
-            ]
-          }
-        ];
-        localStorage.setItem('snakeboyThreadComments', JSON.stringify(comments));
+    function checkAdmin() {
+      const password = document.getElementById('adminPassword').value;
+      if (password) {
+        adminPassword = password;
+        isAdminLoggedIn = true;
+        document.getElementById('adminStatus').textContent = '✓ Admin logged in';
+        renderComments();
       }
-      return comments;
     }
-    function saveComments(comments) {
-      localStorage.setItem('snakeboyThreadComments', JSON.stringify(comments));
+
+    // Load comments from server
+    async function loadComments() {
+      try {
+        const response = await fetch(`${API_URL}/comments/${THREAD_NAME}`);
+        const data = await response.json();
+        return data.comments || [];
+      } catch (error) {
+        console.error('Error loading comments:', error);
+        return [];
+      }
     }
+
     let currentPage = 1;
+    let allComments = [];
+
     function setPage(page) {
       currentPage = page;
       renderComments();
     }
+
     function getTotalPages(comments) {
       return Math.max(1, Math.ceil(comments.length / COMMENTS_PER_PAGE));
     }
+
     function formatDateUSCentral(dt) {
       const date = new Date(dt);
-      let offset = -6;
-      const jan = new Date(date.getFullYear(), 0, 1);
-      const jul = new Date(date.getFullYear(), 6, 1);
-      const stdTimezoneOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
-      if (date.getTimezoneOffset() < stdTimezoneOffset) offset = -5;
-      let central = new Date(date.getTime() + (offset * 60 * 60 * 1000));
-      return central.toLocaleDateString('en-US', {year: 'numeric', month: '2-digit', day: '2-digit'});
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        timeZone: 'America/Chicago'
+      });
     }
+
     function escapeHTML(str) {
       return str.replace(/[&<>"']/g, function(m) {
         return ({
@@ -293,6 +349,7 @@
         })[m];
       });
     }
+
     function formatText(str) {
       str = escapeHTML(str);
       str = str.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/g, function(_, spoilerText) {
@@ -302,85 +359,53 @@
       str = str.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
       return str;
     }
-    function renderComments() {
-      const comments = loadComments();
+
+    // Recursive function to render replies
+    function renderReplies(replies, depth = 0) {
+      if (!replies || replies.length === 0) return '';
+      if (depth >= 4) return ''; // Max 4 levels of nesting
+
+      return `<ul class="reply-list">${replies.map(reply => `
+        <li>
+          <div class="comment-meta">Anonymous • ${formatDateUSCentral(reply.date)}
+            ${isAdminLoggedIn ? `<button class="delete-btn" onclick="deleteComment('${reply.id}')">Delete</button>` : ''}
+          </div>
+          <div class="comment-body">${formatText(reply.body)}</div>
+          ${depth < 3 ? `<button class="reply-btn" onclick="showReplyForm('${reply.id}')">Reply</button>` : ''}
+          <div id="reply-form-${reply.id}" style="display:none;"></div>
+          ${renderReplies(reply.replies, depth + 1)}
+        </li>
+      `).join('')}</ul>`;
+    }
+
+    async function renderComments() {
+      allComments = await loadComments();
       const commentList = document.getElementById('commentList');
       commentList.innerHTML = '';
-      const totalPages = getTotalPages(comments);
+      
+      const totalPages = getTotalPages(allComments);
       if (currentPage > totalPages) currentPage = totalPages;
-      const startIdx = comments.length - (currentPage * COMMENTS_PER_PAGE);
-      const endIdx = comments.length - ((currentPage-1) * COMMENTS_PER_PAGE);
-      const pageComments = comments.slice(Math.max(0, startIdx), endIdx);
-      pageComments.forEach((comment, idx) => {
+      
+      const startIdx = allComments.length - (currentPage * COMMENTS_PER_PAGE);
+      const endIdx = allComments.length - ((currentPage - 1) * COMMENTS_PER_PAGE);
+      const pageComments = allComments.slice(Math.max(0, startIdx), endIdx);
+
+      pageComments.forEach(comment => {
         const li = document.createElement('li');
         li.className = 'comment';
         li.innerHTML = `
-          <div class="comment-meta">Anonymous &bull; ${formatDateUSCentral(comment.date)}
-            ${isAdmin() ? `<button class="delete-btn" title="Delete comment" data-id="${comment.id}">Delete</button>` : ''}
+          <div class="comment-meta">Anonymous • ${formatDateUSCentral(comment.date)}
+            ${isAdminLoggedIn ? `<button class="delete-btn" onclick="deleteComment('${comment.id}')">Delete</button>` : ''}
           </div>
           <div class="comment-body">${formatText(comment.body)}</div>
-          <button class="reply-btn" data-id="${comment.id}">Reply</button>
-          <ul class="reply-list">${(comment.replies || []).map((reply, ridx) => `
-            <li>
-              <div class="comment-meta">Anonymous &bull; ${formatDateUSCentral(reply.date)}
-                ${isAdmin() ? `<button class="delete-btn" title="Delete reply" data-comment="${comment.id}" data-reply="${reply.id}">Delete</button>` : ''}
-              </div>
-              <div class="comment-body">${formatText(reply.body)}</div>
-            </li>
-          `).join('')}</ul>
+          <button class="reply-btn" onclick="showReplyForm('${comment.id}')">Reply</button>
+          <div id="reply-form-${comment.id}" style="display:none;"></div>
+          ${renderReplies(comment.replies)}
         `;
-        const replyForm = document.createElement('form');
-        replyForm.className = 'reply-form';
-        replyForm.style.display = 'none';
-        replyForm.innerHTML = `
-          <textarea class="reply-textarea" placeholder="Write a reply..." required></textarea>
-          <button type="submit" class="reply-btn">Post Reply</button>
-        `;
-        li.appendChild(replyForm);
-        const replyBtn = li.querySelector('.reply-btn');
-        replyBtn.addEventListener('click', () => {
-          replyForm.style.display = replyForm.style.display === 'none' ? 'flex' : 'none';
-        });
-        replyForm.addEventListener('submit', function(e) {
-          e.preventDefault();
-          const replyText = replyForm.querySelector('.reply-textarea').value.trim();
-          if (replyText.length) {
-            comment.replies = comment.replies || [];
-            comment.replies.push({
-              id: Date.now() + Math.random(),
-              body: replyText,
-              date: new Date().toISOString()
-            });
-            saveComments(comments);
-            renderComments();
-          }
-        });
-        li.querySelectorAll('.delete-btn').forEach(btn => {
-          btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (btn.hasAttribute('data-reply')) {
-              const cId = btn.getAttribute('data-comment');
-              const rId = btn.getAttribute('data-reply');
-              const cIdx = comments.findIndex(c => c.id == cId);
-              if (cIdx > -1) {
-                comments[cIdx].replies = comments[cIdx].replies.filter(r => r.id != rId);
-                saveComments(comments);
-                renderComments();
-              }
-            } else {
-              const id = btn.getAttribute('data-id');
-              const idx = comments.findIndex(c => c.id == id);
-              if (idx > -1) {
-                comments.splice(idx, 1);
-                saveComments(comments);
-                if ((comments.length % COMMENTS_PER_PAGE === 0) && currentPage > 1) setPage(currentPage-1);
-                else renderComments();
-              }
-            }
-          });
-        });
         commentList.appendChild(li);
       });
+
+      // Pagination
       const pagination = document.getElementById('pagination');
       pagination.innerHTML = '';
       if (totalPages > 1) {
@@ -389,75 +414,153 @@
         olderBtn.textContent = '← Newer';
         olderBtn.disabled = currentPage <= 1;
         olderBtn.onclick = () => setPage(currentPage - 1);
+        
         const newerBtn = document.createElement('button');
         newerBtn.className = 'pagination-btn';
         newerBtn.textContent = 'Older →';
         newerBtn.disabled = currentPage >= totalPages;
         newerBtn.onclick = () => setPage(currentPage + 1);
+        
         const pageInfo = document.createElement('span');
-        pageInfo.textContent = `Page ${totalPages-currentPage+1} of ${totalPages}`;
+        pageInfo.textContent = `Page ${totalPages - currentPage + 1} of ${totalPages}`;
+        
         pagination.appendChild(olderBtn);
         pagination.appendChild(pageInfo);
         pagination.appendChild(newerBtn);
       }
     }
-    // --- POST COMMENT ---
-    document.getElementById('commentForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (window.disableCaptcha || isAdmin()) {
-        postComment();
+
+    // Show reply form
+    function showReplyForm(commentId) {
+      const formContainer = document.getElementById(`reply-form-${commentId}`);
+      if (formContainer.style.display === 'none') {
+        formContainer.style.display = 'block';
+        formContainer.innerHTML = `
+          <form class="reply-form" onsubmit="postReply(event, '${commentId}')">
+            <textarea class="reply-textarea" id="reply-text-${commentId}" placeholder="Write a reply..." required></textarea>
+            <button type="submit" class="reply-btn">Post Reply</button>
+          </form>
+        `;
       } else {
-        // Get reCAPTCHA token
-        var recaptchaToken = grecaptcha.getResponse();
-        if (!recaptchaToken) {
+        formContainer.style.display = 'none';
+        formContainer.innerHTML = '';
+      }
+    }
+
+    // Post main comment
+    document.getElementById('commentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const text = document.getElementById('commentText').value.trim();
+      if (!text) return;
+
+      let captchaToken = null;
+      if (!disableCaptcha && !isAdminLoggedIn) {
+        captchaToken = grecaptcha.getResponse();
+        if (!captchaToken) {
           document.getElementById('captchaError').textContent = "Please complete the reCAPTCHA.";
           return;
         }
-        // Validate with backend
-        fetch('recaptcha-verify.php', {
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/comments/${THREAD_NAME}`, {
           method: 'POST',
-          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-          body: 'g-recaptcha-response=' + encodeURIComponent(recaptchaToken)
-        })
-        .then(r=>r.json())
-        .then(data=>{
-          if (data.success) {
-            document.getElementById('captchaError').textContent = '';
-            postComment();
-            grecaptcha.reset();
-          } else {
-            document.getElementById('captchaError').textContent = "Captcha failed. Try again.";
-            grecaptcha.reset();
-          }
-        })
-        .catch(()=>{
-          document.getElementById('captchaError').textContent = "Captcha error. Please reload.";
-          grecaptcha.reset();
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            body: text,
+            captchaToken: captchaToken,
+            adminPassword: isAdminLoggedIn ? adminPassword : null
+          })
         });
+
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('commentText').value = '';
+          document.getElementById('captchaError').textContent = '';
+          if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+          currentPage = 1;
+          await renderComments();
+        } else {
+          document.getElementById('captchaError').textContent = data.error || 'Failed to post comment';
+        }
+      } catch (error) {
+        console.error('Error posting comment:', error);
+        document.getElementById('captchaError').textContent = 'Error posting comment. Please try again.';
       }
     });
-    function postComment() {
-      const text = document.getElementById('commentText').value.trim();
-      if (text.length) {
-        const comments = loadComments();
-        comments.push({
-          id: Date.now() + Math.random(),
-          body: text,
-          date: new Date().toISOString(),
-          replies: []
+
+    // Post reply
+    async function postReply(event, commentId) {
+      event.preventDefault();
+      
+      const text = document.getElementById(`reply-text-${commentId}`).value.trim();
+      if (!text) return;
+
+      try {
+        const response = await fetch(`${API_URL}/comments/${THREAD_NAME}/reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            commentId: commentId,
+            body: text,
+            captchaToken: null, // You can add captcha for replies too if needed
+            adminPassword: isAdminLoggedIn ? adminPassword : null
+          })
         });
-        saveComments(comments);
-        document.getElementById('commentText').value = '';
-        currentPage = 1;
-        renderComments();
+
+        const data = await response.json();
+        if (data.success) {
+          await renderComments();
+        } else {
+          alert(data.error || 'Failed to post reply');
+        }
+      } catch (error) {
+        console.error('Error posting reply:', error);
+        alert('Error posting reply. Please try again.');
       }
     }
+
+    // Delete comment (admin only)
+    async function deleteComment(commentId) {
+      if (!isAdminLoggedIn) {
+        alert('Admin login required to delete comments');
+        return;
+      }
+
+      if (!confirm('Are you sure you want to delete this comment?')) return;
+
+      try {
+        const response = await fetch(`${API_URL}/comments/${THREAD_NAME}/${commentId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminPassword: adminPassword })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          await renderComments();
+        } else {
+          alert(data.error || 'Failed to delete comment');
+        }
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('Error deleting comment. Please try again.');
+      }
+    }
+
+    // Initial render
     renderComments();
+
+    // Click handler for spoilers
     document.addEventListener('click', function(e) {
       if (e.target.classList.contains('spoiler')) {
         e.target.classList.add('revealed');
       }
     });
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>
