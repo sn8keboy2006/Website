@@ -36,7 +36,7 @@
     
     /* Fix hero height - remove the excessive min-height */
     .hero {
-      min-height: auto !important;
+      min-height: 80vh !important;
       padding: 6rem 2rem !important;
       display: flex !important;
       align-items: center !important;
@@ -46,7 +46,6 @@
     /* Ensure page fits in viewport */
     body {
       min-height: 100vh;
-      max-height: 100vh;
       overflow-y: auto;
     }
     
@@ -54,6 +53,12 @@
     .share-menu {
       z-index: 9999 !important;
       position: absolute !important;
+      overflow: hidden !important; /* Ensures border-radius clips content */
+    }
+    
+    /* Fix last item in dropdown to respect border-radius */
+    .share-item:last-child {
+      border-radius: 0 0 8px 8px;
     }
     
     /* Add spacing to hero actions to prevent clipping */
