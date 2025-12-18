@@ -109,7 +109,6 @@
       margin-top: 0.3em;
       margin-bottom: 0.3em;
     }
-    /* Nested reply styling - unlimited depth but stops shrinking after 4 levels */
     .reply-list {
       list-style: none;
       padding: 0 0 0 1.5em;
@@ -135,7 +134,6 @@
       padding-left: 0.8em;
       border-left: 1px solid #1d2229;
     }
-    /* After 4th level, maintain same size/style */
     .reply-list .reply-list .reply-list .reply-list .reply-list {
       font-size: 1em;
       padding-left: 0.8em;
@@ -192,7 +190,6 @@
       margin-top: 0.3em;
       width: 100%;
     }
-    /* Admin lock button - bottom right corner */
     .admin-lock {
       position: fixed;
       bottom: 20px;
@@ -218,7 +215,6 @@
     .admin-lock.logged-in {
       background: #4d9;
     }
-    /* Admin modal */
     .admin-modal {
       display: none;
       position: fixed;
@@ -349,10 +345,8 @@
     </section>
   </main>
   
-  <!-- Admin lock button -->
   <button class="admin-lock" id="adminLockBtn" title="Admin login">🔒</button>
   
-  <!-- Admin modal -->
   <div class="admin-modal" id="adminModal">
     <div class="admin-modal-content">
       <h3 id="modalTitle">Admin Login</h3>
@@ -380,11 +374,10 @@
   <script>
     const API_URL = 'https://thread-comments.thread-backend.workers.dev/api';
     const THREAD_NAME = 'snakeboy';
-    const COMMENTS_PER_PAGE = 20;
+    const ITEMS_PER_PAGE = 25;
     let adminPassword = '';
     let isAdminLoggedIn = false;
 
-    // Admin modal functions
     document.getElementById('adminLockBtn').addEventListener('click', function() {
       document.getElementById('adminModal').classList.add('show');
       if (isAdminLoggedIn) {
@@ -402,7 +395,6 @@
       document.getElementById('adminModal').classList.remove('show');
     }
 
-    // Close modal when clicking outside
     document.getElementById('adminModal').addEventListener('click', function(e) {
       if (e.target === this) {
         closeAdminModal();
@@ -431,7 +423,6 @@
       renderComments();
     }
 
-    // Allow Enter key to login
     document.getElementById('adminPassword').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         checkAdmin();
@@ -452,13 +443,65 @@
     let currentPage = 1;
     let allComments = [];
 
+    // Count total items (comments + all replies)
+    function countTotalItems(comments) {
+      let total = 0;
+      comments.forEach(comment => {
+        total++; // Count the comment itself
+        total += countReplies(comment.replies);
+      });
+      return total;
+    }
+
+    function countReplies(replies) {
+      if (!replies || replies.length === 0) return 0;
+      let count = replies.length;
+      replies.forEach(reply => {
+        count += countReplies(reply.replies);
+      });
+      return count;
+    }
+
+    // Flatten comments into a list with their total item counts
+    function flattenCommentsWithCounts(comments) {
+      return comments.map(comment => ({
+        comment: comment,
+        totalItems: 1 + countReplies(comment.replies)
+      }));
+    }
+
+    // Group comments into pages based on total items
+    function paginateComments(comments) {
+      const flattened = flattenCommentsWithCounts(comments);
+      const pages = [];
+      let currentPageItems = [];
+      let currentPageCount = 0;
+
+      for (let i = 0; i < flattened.length; i++) {
+        const item = flattened[i];
+        
+        // If adding this comment would exceed the page limit, start a new page
+        if (currentPageCount > 0 && currentPageCount + item.totalItems > ITEMS_PER_PAGE) {
+          pages.push(currentPageItems);
+          currentPageItems = [];
+          currentPageCount = 0;
+        }
+        
+        currentPageItems.push(item.comment);
+        currentPageCount += item.totalItems;
+      }
+
+      // Add the last page if it has items
+      if (currentPageItems.length > 0) {
+        pages.push(currentPageItems);
+      }
+
+      return pages;
+    }
+
     function setPage(page) {
       currentPage = page;
       renderComments();
-    }
-
-    function getTotalPages(comments) {
-      return Math.max(1, Math.ceil(comments.length / COMMENTS_PER_PAGE));
     }
 
     function formatDateUSCentral(dt) {
@@ -493,7 +536,6 @@
       return str;
     }
 
-    // Recursive function to render replies - no depth limit, but stops shrinking after 4
     function renderReplies(replies, depth = 0) {
       if (!replies || replies.length === 0) return '';
 
@@ -515,12 +557,14 @@
       const commentList = document.getElementById('commentList');
       commentList.innerHTML = '';
       
-      const totalPages = getTotalPages(allComments);
+      const pages = paginateComments(allComments);
+      const totalPages = Math.max(1, pages.length);
+      
       if (currentPage > totalPages) currentPage = totalPages;
       
-      const startIdx = allComments.length - (currentPage * COMMENTS_PER_PAGE);
-      const endIdx = allComments.length - ((currentPage - 1) * COMMENTS_PER_PAGE);
-      const pageComments = allComments.slice(Math.max(0, startIdx), endIdx);
+      // Get comments for current page (pages are in chronological order, so reverse for display)
+      const pageIndex = totalPages - currentPage;
+      const pageComments = pages[pageIndex] || [];
 
       pageComments.forEach(comment => {
         const li = document.createElement('li');
