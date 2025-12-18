@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>General/Miscellaneous Thread</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    html, body {
+      background: #232a35 !important;
+      min-height: 100vh;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    .comments-section {
+      max-width: 700px;
+      width: 100%;
+      min-width: 320px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: #232a35;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(34,45,58,0.13);
+      box-sizing: border-box;
+      overflow-x: auto;
+      display: block;
+    }
+    .comment-form, .reply-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      margin-bottom: 2rem;
+      width: 100%;
+    }
+    .comment-textarea, .reply-textarea {
+      resize: vertical;
+      min-height: 50px;
+      font-size: 1em;
+      border-radius: 8px;
+      border: 1px solid #353c48;
+      padding: 0.7em;
+      background: #181818;
+      color: #f8f8f8;
+      font-family: inherit;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .comment-btn, .reply-btn, .delete-btn {
+      align-self: flex-end;
+      background: #353c48;
+      color: #bcd2e8;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, color 0.18s;
+      margin-left: 0.5em;
+    }
+    .comment-btn:hover, .reply-btn:hover, .delete-btn:hover {
+      background: #bcd2e8;
+      color: #232a35;
+    }
+    .delete-btn {
+      background: #a83232;
+      color: #fff;
+      font-size: 0.95em;
+      padding: 0.3em 0.8em;
+      margin: 0.2em;
+    }
+    .delete-btn:hover {
+      background: #e54d4d;
+      color: #fff;
+    }
+    .comment-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      display: block;
+      min-width: 100%;
+      box-sizing: border-box;
+    }
+    .comment {
+      margin-bottom: 1.6rem;
+      padding-bottom: 0.9rem;
+      border-bottom: 1px solid #353c48;
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+      display: block;
+      min-width: 100%;
+    }
+    .comment-meta {
+      font-size: 0.93em;
+      color: #bcd2e8;
+      margin-bottom: 0.2em;
+      font-style: italic;
+    }
+    .comment-body {
+      margin-bottom: 0.5em;
+      white-space: pre-line;
+      color: #f8f8f8;
+      width: 100%;
+    }
+    .reply-btn {
+      font-size: 0.95em;
+      padding: 0.3em 1em;
+      margin-top: 0.3em;
+      margin-bottom: 0.3em;
+    }
+    .reply-list {
+      list-style: none;
+      padding: 0 0 0 1.5em;
+      margin: 0.5em 0 0 0;
+      width: 100%;
+      box-sizing: border-box;
+      display: block;
+      font-size: 0.95em;
+      border-left: 2px solid #353c48;
+    }
+    .reply-list .reply-list {
+      font-size: 0.95em;
+      padding-left: 1.2em;
+      border-left: 2px solid #2a3340;
+    }
+    .reply-list .reply-list .reply-list {
+      font-size: 0.95em;
+      padding-left: 1em;
+      border-left: 2px solid #222930;
+    }
+    .reply-list .reply-list .reply-list .reply-list {
+      font-size: 1em;
+      padding-left: 0.8em;
+      border-left: 1px solid #1d2229;
+    }
+    .reply-list .reply-list .reply-list .reply-list .reply-list {
+      font-size: 1em;
+      padding-left: 0.8em;
+      border-left: 1px solid #1d2229;
+    }
+    .reply-form {
+      margin-top: 0.6em;
+      margin-bottom: 0.6em;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .spoiler {
+      background: #bcd2e8;
+      color: #bcd2e8;
+      border-radius: 4px;
+      padding: 0.1em 0.3em;
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+      font-weight: bold;
+    }
+    .spoiler.revealed {
+      color: #232a35;
+      background: #f8f8f8;
+    }
+    .pagination {
+      display: flex;
+      gap: 1em;
+      justify-content: center;
+      margin: 2em 0 0 0;
+      width: 100%;
+    }
+    .pagination-btn {
+      background: #353c48;
+      color: #bcd2e8;
+      border: none;
+      border-radius: 8px;
+      padding: 0.3em 1.2em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, color 0.18s;
+    }
+    .pagination-btn:disabled {
+      background: #222d3a;
+      color: #888;
+      cursor: not-allowed;
+    }
+    .pagination-btn:hover:not(:disabled) {
+      background: #bcd2e8;
+      color: #232a35;
+    }
+    .captcha-error {
+      color: #e54d4d;
+      font-size: 0.98em;
+      margin-top: 0.3em;
+      width: 100%;
+    }
+    .admin-lock {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #353c48;
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      font-size: 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: background 0.2s, transform 0.15s;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .admin-lock:hover {
+      background: #bcd2e8;
+      transform: scale(1.1);
+    }
+    .admin-lock.logged-in {
+      background: #4d9;
+    }
+    .admin-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    .admin-modal.show {
+      display: flex;
+    }
+    .admin-modal-content {
+      background: #232a35;
+      padding: 2em;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      max-width: 400px;
+      width: 90%;
+      border: 2px solid #353c48;
+    }
+    .admin-modal-content h3 {
+      margin-top: 0;
+      color: #bcd2e8;
+    }
+    .admin-input {
+      width: 100%;
+      padding: 0.7em;
+      border-radius: 6px;
+      border: 1px solid #353c48;
+      background: #181818;
+      color: #f8f8f8;
+      font-family: inherit;
+      font-size: 1em;
+      margin-bottom: 1em;
+      box-sizing: border-box;
+    }
+    .admin-modal-buttons {
+      display: flex;
+      gap: 0.5em;
+      justify-content: flex-end;
+    }
+    .admin-modal-btn {
+      padding: 0.6em 1.2em;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .admin-modal-btn.login {
+      background: #353c48;
+      color: #bcd2e8;
+    }
+    .admin-modal-btn.login:hover {
+      background: #bcd2e8;
+      color: #232a35;
+    }
+    .admin-modal-btn.cancel {
+      background: #222d3a;
+      color: #888;
+    }
+    .admin-modal-btn.cancel:hover {
+      background: #353c48;
+      color: #f8f8f8;
+    }
+    .admin-modal-btn.logout {
+      background: #a83232;
+      color: #fff;
+    }
+    .admin-modal-btn.logout:hover {
+      background: #e54d4d;
+    }
+    @media (max-width: 900px) {
+      .comments-section {
+        max-width: 95vw;
+        width: 95vw;
+        min-width: unset;
+        margin: 5vw auto;
+        padding: 1vw;
+      }
+      .reply-list {
+        padding-left: 1em;
+      }
+      .reply-list .reply-list {
+        padding-left: 0.8em;
+      }
+      .reply-list .reply-list .reply-list {
+        padding-left: 0.6em;
+      }
+      .reply-list .reply-list .reply-list .reply-list {
+        padding-left: 0.5em;
+      }
+      .admin-lock {
+        bottom: 15px;
+        right: 15px;
+        width: 44px;
+        height: 44px;
+        font-size: 22px;
+      }
+    }
+  </style>
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body>
+  <nav>
+    <a href="about.html">About</a>
+    <a href="index.html">Manifesto</a>
+    <a href="threads.html">Threads</a>
+  </nav>
+  <main>
+    <h1>General/Miscellaneous</h1>
+    <section class="comments-section">
+      <form id="commentForm" class="comment-form">
+        <textarea id="commentText" class="comment-textarea" placeholder="Share your thoughts..." required></textarea>
+        <div id="captchaSection">
+          <div class="g-recaptcha" data-sitekey="6Lc-NC8sAAAAAMqmy3gnBXOgNDRwP0gZz3SFExEF"></div>
+        </div>
+        <div id="captchaError" class="captcha-error"></div>
+        <button type="submit" class="comment-btn">Post Comment</button>
+      </form>
+      
+      <ul id="commentList" class="comment-list"></ul>
+      <div class="pagination" id="pagination"></div>
+    </section>
+  </main>
+  
+  <button class="admin-lock" id="adminLockBtn" title="Admin login">🔒</button>
+  
+  <div class="admin-modal" id="adminModal">
+    <div class="admin-modal-content">
+      <h3 id="modalTitle">Admin Login</h3>
+      <div id="loginSection">
+        <input type="password" id="adminPassword" class="admin-input" placeholder="Enter admin password">
+        <div class="admin-modal-buttons">
+          <button class="admin-modal-btn cancel" onclick="closeAdminModal()">Cancel</button>
+          <button class="admin-modal-btn login" onclick="checkAdmin()">Login</button>
+        </div>
+      </div>
+      <div id="loggedInSection" style="display:none;">
+        <p style="color: #4d9;">✓ Logged in as admin</p>
+        <div class="admin-modal-buttons">
+          <button class="admin-modal-btn cancel" onclick="closeAdminModal()">Close</button>
+          <button class="admin-modal-btn logout" onclick="logoutAdmin()">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    &copy; 2025 MainPhreaker
+  </footer>
+  
+  <script>
+    const API_URL = 'https://thread-comments.thread-backend.workers.dev/api';
+    const THREAD_NAME = 'general';
+    const COMMENTS_PER_PAGE = 20;
+    let adminPassword = '';
+    let isAdminLoggedIn = false;
+
+    document.getElementById('adminLockBtn').addEventListener('click', function() {
+      document.getElementById('adminModal').classList.add('show');
+      if (isAdminLoggedIn) {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('loggedInSection').style.display = 'block';
+        document.getElementById('modalTitle').textContent = 'Admin Panel';
+      } else {
+        document.getElementById('loginSection').style.display = 'block';
+        document.getElementById('loggedInSection').style.display = 'none';
+        document.getElementById('modalTitle').textContent = 'Admin Login';
+      }
+    });
+
+    function closeAdminModal() {
+      document.getElementById('adminModal').classList.remove('show');
+    }
+
+    document.getElementById('adminModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeAdminModal();
+      }
+    });
+
+    function checkAdmin() {
+      const password = document.getElementById('adminPassword').value;
+      if (password) {
+        adminPassword = password;
+        isAdminLoggedIn = true;
+        document.getElementById('adminLockBtn').classList.add('logged-in');
+        document.getElementById('adminLockBtn').textContent = '🔓';
+        closeAdminModal();
+        renderComments();
+      }
+    }
+
+    function logoutAdmin() {
+      adminPassword = '';
+      isAdminLoggedIn = false;
+      document.getElementById('adminLockBtn').classList.remove('logged-in');
+      document.getElementById('adminLockBtn').textContent = '🔒';
+      document.getElementById('adminPassword').value = '';
+      closeAdminModal();
+      renderComments();
+    }
+
+    document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        checkAdmin();
+      }
+    });
+
+    async function loadComments() {
+      try {
+        const response = await fetch(`${API_URL}/comments/${THREAD_NAME}`);
+        const data = await response.json();
+        return data.comments || [];
+      } catch (error) {
+        console.error('Error loading comments:', error);
+        return [];
+      }
+    }
+
+    let currentPage = 1;
+    let allComments = [];
+
+    function setPage(page) {
+      currentPage = page;
+      renderComments();
+    }
+
+    function getTotalPages(comments) {
+      return Math.max(1, Math.ceil(comments.length / COMMENTS_PER_PAGE));
+    }
+
+    function formatDateUSCentral(dt) {
+      const date = new Date(dt);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        timeZone: 'America/Chicago'
+      });
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>"']/g, function(m) {
+        return ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        })[m];
+      });
+    }
+
+    function formatText(str) {
+      str = escapeHTML(str);
+      str = str.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/g, function(_, spoilerText) {
+        return `<span class="spoiler" onclick="this.classList.add('revealed');">${escapeHTML(spoilerText)}</span>`;
+      });
+      str = str.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
+      str = str.replace(/\*([^\*]+)\*/g, '<em>$1</em>');
+      return str;
+    }
+
+    function renderReplies(replies, depth = 0) {
+      if (!replies || replies.length === 0) return '';
+
+      return `<ul class="reply-list">${replies.map(reply => `
+        <li>
+          <div class="comment-meta">Anonymous • ${formatDateUSCentral(reply.date)}
+            ${isAdminLoggedIn ? `<button class="delete-btn" onclick="deleteComment('${reply.id}')">Delete</button>` : ''}
+          </div>
+          <div class="comment-body">${formatText(reply.body)}</div>
+          <button class="reply-btn" onclick="showReplyForm('${reply.id}')">Reply</button>
+          <div id="reply-form-${reply.id}" style="display:none;"></div>
+          ${renderReplies(reply.replies, depth + 1)}
+        </li>
+      `).join('')}</ul>`;
+    }
+
+    async function renderComments() {
+      allComments = await loadComments();
+      const commentList = document.getElementById('commentList');
+      commentList.innerHTML = '';
+      
+      const totalPages = getTotalPages(allComments);
+      if (currentPage > totalPages) currentPage = totalPages;
+      
+      const startIdx = allComments.length - (currentPage * COMMENTS_PER_PAGE);
+      const endIdx = allComments.length - ((currentPage - 1) * COMMENTS_PER_PAGE);
+      const pageComments = allComments.slice(Math.max(0, startIdx), endIdx);
+
+      pageComments.forEach(comment => {
+        const li = document.createElement('li');
+        li.className = 'comment';
+        li.innerHTML = `
+          <div class="comment-meta">Anonymous • ${formatDateUSCentral(comment.date)}
+            ${isAdminLoggedIn ? `<button class="delete-btn" onclick="deleteComment('${comment.id}')">Delete</button>` : ''}
+          </div>
+          <div class="comment-body">${formatText(comment.body)}</div>
+          <button class="reply-btn" onclick="showReplyForm('${comment.id}')">Reply</button>
+          <div id="reply-form-${comment.id}" style="display:none;"></div>
+          ${renderReplies(comment.replies)}
+        `;
+        commentList.appendChild(li);
+      });
+
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+      if (totalPages > 1) {
+        const olderBtn = document.createElement('button');
+        olderBtn.className = 'pagination-btn';
+        olderBtn.textContent = '← Newer';
+        olderBtn.disabled = currentPage <= 1;
+        olderBtn.onclick = () => setPage(currentPage - 1);
+        
+        const newerBtn = document.createElement('button');
+        newerBtn.className = 'pagination-btn';
+        newerBtn.textContent = 'Older →';
+        newerBtn.disabled = currentPage >= totalPages;
+        newerBtn.onclick = () => setPage(currentPage + 1);
+        
+        const pageInfo = document.createElement('span');
+        pageInfo.textContent = `Page ${totalPages - currentPage + 1} of ${totalPages}`;
+        
+        pagination.appendChild(olderBtn);
+        pagination.appendChild(pageInfo);
+        pagination.appendChild(newerBtn);
+      }
+    }
+
+    function showReplyForm(commentId) {
+      const formContainer = document.getElementById(`reply-form-${commentId}`);
+      if (formContainer.style.display === 'none') {
+        formContainer.style.display = 'block';
+        formContainer.innerHTML = `
+          <form class="reply-form" onsubmit="postReply(event, '${commentId}')">
+            <textarea class="reply-textarea" id="reply-text-${commentId}" placeholder="Write a reply..." required></textarea>
+            <button type="submit" class="reply-btn">Post Reply</button>
+          </form>
+        `;
+      } else {
+        formContainer.style.display = 'none';
+        formContainer.innerHTML = '';
+      }
+    }
+
+    document.getElementById('commentForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const text = document.getElementById('commentText').value.trim();
+      if (!text) return;
+
+      let captchaToken = null;
+      if (!isAdminLoggedIn) {
+        captchaToken = grecaptcha.getResponse();
+        if (!captchaToken) {
+          document.getElementById('captchaError').textContent = "Please complete the reCAPTCHA.";
+          return;
+        }
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/comments/${THREAD_NAME}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            body: text,
+            captchaToken: captchaToken,
+            adminPassword: isAdminLoggedIn ? adminPassword : null
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('commentText').value = '';
+          document.getElementById('captchaError').textContent = '';
+          if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+          currentPage = 1;
+          await renderComments();
+        } else {
+          document.getElementById('captchaError').textContent = data.error || 'Failed to post comment';
+        }
+      } catch (error) {
+        console.error('Error posting comment:', error);
+        document.getElementById('captchaError').textContent = 'Error posting comment. Please try again.';
+      }
+    });
+
+    async function postReply(event, commentId) {
+      event.preventDefault();
+      
+      const text = document.getElementById(`reply-text-${commentId}`).value.trim();
+      if (!text) return;
+
+      try {
+        const response = await fetch(`${API_URL}/comments/${THREAD_NAME}/reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            commentId: commentId,
+            body: text,
+            captchaToken: null,
+            adminPassword: isAdminLoggedIn ? adminPassword : null
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          await renderComments();
+        } else {
+          alert(data.error || 'Failed to post reply');
+        }
+      } catch (error) {
+        console.error('Error posting reply:', error);
+        alert('Error posting reply. Please try again.');
+      }
+    }
+
+    async function deleteComment(commentId) {
+      if (!isAdminLoggedIn) {
+        alert('Admin login required to delete comments');
+        return;
+      }
+
+      if (!confirm('Are you sure you want to delete this comment?')) return;
+
+      try {
+        const response = await fetch(`${API_URL}/comments/${THREAD_NAME}/${commentId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminPassword: adminPassword })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          await renderComments();
+        } else {
+          alert(data.error || 'Failed to delete comment');
+        }
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('Error deleting comment. Please try again.');
+      }
+    }
+
+    renderComments();
+
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('spoiler')) {
+        e.target.classList.add('revealed');
+      }
+    });
+  </script>
+</body>
+</html>
