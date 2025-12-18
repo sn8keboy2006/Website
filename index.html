@@ -25,7 +25,7 @@
       width: 100%;
       text-align: left;
       transition: background 0.2s ease, color 0.2s ease;
-      box-sizing: border-box; /* THIS FIXES THE OVERFLOW */
+      box-sizing: border-box;
     }
     
     /* Update hover colors for new platforms */
@@ -33,6 +33,19 @@
     .share-item.wa:hover { color: #25D366; }
     .share-item.kakao:hover { color: #FEE500; }
     .share-item.band:hover { color: #00C73C; }
+    
+    /* Fix hero height - remove the excessive min-height */
+    .hero {
+      min-height: auto !important;
+      padding: 4rem 2rem !important;
+    }
+    
+    /* Ensure page fits in viewport */
+    body {
+      min-height: 100vh;
+      max-height: 100vh;
+      overflow-y: auto;
+    }
   </style>
 </head>
   
