@@ -21,10 +21,12 @@
       border-bottom: 2px solid #353c48;
       margin-bottom: 0.7em;
       margin-left: -0.5em;
-      /* Ensures no clipping on left side */
     }
     .thread-info {
       margin-left: 0;
+    }
+    .loading-count {
+      opacity: 0.5;
     }
   </style>
 </head>
@@ -38,7 +40,7 @@
     <div class="thread-window">
       <div class="thread-info">
         <span class="thread-bookmark">General/Miscellaneous</span>
-        <div class="thread-comments">💬 41 comments</div>
+        <div class="thread-comments" id="count-general">💬 <span class="loading-count">Loading...</span></div>
         <div class="thread-blurb"></div>
       </div>
       <button class="thread-link-btn" onclick="window.location.href='general-thread.html'">View Thread</button>
@@ -46,7 +48,7 @@
     <div class="thread-window">
       <div class="thread-info">
         <span class="thread-bookmark">Snake-boy's Posts</span>
-        <div class="thread-comments">💬 32 comments</div>
+        <div class="thread-comments" id="count-snakeboy">💬 <span class="loading-count">Loading...</span></div>
         <div class="thread-blurb">"I had the dream again..."</div>
       </div>
       <button class="thread-link-btn" onclick="window.location.href='snakeboy-thread.html'">View Thread</button>
@@ -54,7 +56,7 @@
     <div class="thread-window">
       <div class="thread-info">
         <span class="thread-bookmark">IU's Journal</span>
-        <div class="thread-comments">💬 18 comments</div>
+        <div class="thread-comments" id="count-iu">💬 <span class="loading-count">Loading...</span></div>
         <div class="thread-blurb">"Once, I was very excited about this show..."</div>
       </div>
       <button class="thread-link-btn" onclick="window.location.href='iu-thread.html'">View Thread</button>
@@ -62,7 +64,7 @@
     <div class="thread-window">
       <div class="thread-info">
         <span class="thread-bookmark">Post-Encryption and Erratum</span>
-        <div class="thread-comments">💬 7 comments</div>
+        <div class="thread-comments" id="count-mainphreaker">💬 <span class="loading-count">Loading...</span></div>
         <div class="thread-blurb"></div>
       </div>
       <button class="thread-link-btn" onclick="window.location.href='mainphreaker-thread.html'">View Thread</button>
@@ -71,5 +73,39 @@
   <footer>
     <span class="footer-copy">&copy; 2025 </span>
   </footer>
+  
+  <script>
+    const API_URL = 'https://thread-comments.thread-backend.workers.dev/api';
+    
+    // Count all comments and replies recursively
+    function countAllComments(comments) {
+      let total = comments.length;
+      comments.forEach(comment => {
+        if (comment.replies && comment.replies.length > 0) {
+          total += countAllComments(comment.replies);
+        }
+      });
+      return total;
+    }
+    
+    // Load comment count for a specific thread
+    async function loadThreadCount(threadName, elementId) {
+      try {
+        const response = await fetch(`${API_URL}/comments/${threadName}`);
+        const data = await response.json();
+        const count = countAllComments(data.comments || []);
+        document.getElementById(elementId).innerHTML = `💬 ${count} comment${count !== 1 ? 's' : ''}`;
+      } catch (error) {
+        console.error(`Error loading count for ${threadName}:`, error);
+        document.getElementById(elementId).innerHTML = '💬 0 comments';
+      }
+    }
+    
+    // Load all thread counts
+    loadThreadCount('general', 'count-general');
+    loadThreadCount('snakeboy', 'count-snakeboy');
+    loadThreadCount('iu', 'count-iu');
+    loadThreadCount('mainphreaker', 'count-mainphreaker');
+  </script>
 </body>
 </html>
