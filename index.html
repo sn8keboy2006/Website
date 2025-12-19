@@ -34,21 +34,25 @@
     .share-item.kakao:hover { color: #FEE500; }
     .share-item.band:hover { color: #00C73C; }
     
-    /* Fix hero to fit viewport properly */
+    /* Fix hero to fill viewport without scrolling */
     .hero {
-      min-height: calc(100vh - 120px) !important; /* Account for nav + footer */
-      padding: 3rem 2rem 0 2rem !important;
+      height: calc(100vh - 60px) !important; /* Exact height: viewport minus footer */
+      padding: 2rem 2rem 70px 2rem !important; /* Extra bottom padding for footer clearance */
       display: flex !important;
-      align-items: center !important; /* Back to center */
+      align-items: center !important;
       justify-content: center !important;
+      overflow: hidden !important;
     }
     
-    /* Ensure page fits in viewport */
+    /* Prevent page scrolling */
     body {
-      min-height: 100vh;
-      overflow-y: auto;
+      height: 100vh;
+      overflow: hidden !important;
       margin: 0;
-      padding-bottom: 60px; /* Space for fixed footer */
+    }
+    
+    html {
+      overflow: hidden !important;
     }
     
     /* Bring dropdown menus to front and give them space */
