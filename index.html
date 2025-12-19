@@ -37,7 +37,7 @@
     /* Fix hero to fill viewport without scrolling */
     .hero {
       height: calc(100vh - 60px) !important; /* Exact height: viewport minus footer */
-      padding: 2rem 2rem 80px 2rem !important; /* Increased bottom padding for more clearance */
+      padding: 2rem 2rem 90px 2rem !important; /* Increased bottom padding for more clearance */
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
@@ -59,7 +59,29 @@
     .share-menu {
       z-index: 9999 !important;
       position: absolute !important;
-      overflow: hidden !important; /* Ensures border-radius clips content */
+      overflow-y: auto !important; /* Add scrolling */
+      overflow-x: hidden !important;
+      max-height: 300px !important; /* Limit height so it doesn't go off screen */
+      margin-bottom: 10px !important; /* Extra space above footer */
+    }
+    
+    /* Custom scrollbar styling for share menu */
+    .share-menu::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .share-menu::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    
+    .share-menu::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+    
+    .share-menu::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
     }
     
     /* Fix last item in dropdown to respect border-radius */
