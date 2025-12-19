@@ -109,16 +109,16 @@
             <i class="fa-solid fa-download"></i> Download
           </button>
           <div class="share-menu" id="downloadMenu">
-            <a href="pdfs/manifesto.pdf" target="_blank" class="share-item">
+            <a href="pdfs/manifesto.pdf" target="_blank" class="share-item" onclick="trackDownload()">
               <i class="fa-solid fa-file-pdf"></i> PDF (Black)
             </a>
-            <a href="pdfs/manifesto-white.pdf" target="_blank" class="share-item">
+            <a href="pdfs/manifesto-white.pdf" target="_blank" class="share-item" onclick="trackDownload()">
               <i class="fa-solid fa-file-pdf"></i> PDF (White)
             </a>
-            <a href="docs/manifesto.docx" target="_blank" class="share-item">
+            <a href="docs/manifesto.docx" target="_blank" class="share-item" onclick="trackDownload()">
               <i class="fa-solid fa-file-word"></i> Word Document
             </a>
-            <a href="docs/manifesto.epub" target="_blank" class="share-item">
+            <a href="docs/manifesto.epub" target="_blank" class="share-item" onclick="trackDownload()">
               <i class="fa-solid fa-book"></i> EPUB
             </a>
           </div>
@@ -165,10 +165,58 @@
   </main>
   <footer>
     <span class="footer-copy">&copy; 2025 </span>
-    <span class="footer-viewcount">Views: <span id="view-count">1268</span> | Downloads: <span id="view-count">347</span> </span>
+    <span class="footer-viewcount">Views: <span id="view-count">Loading...</span> | Downloads: <span id="download-count">Loading...</span> </span>
   </footer>
 
   <script>
+    // Replace with your actual Cloudflare Worker URL after deployment
+    const WORKER_URL = 'https://index-analytics.thread-backend.workers.dev';
+
+    // Track page view on load
+    async function trackView() {
+      try {
+        const response = await fetch(`${WORKER_URL}/track/view`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+        document.getElementById('view-count').textContent = data.views;
+      } catch (error) {
+        console.error('Error tracking view:', error);
+        document.getElementById('view-count').textContent = '---';
+      }
+    }
+
+    // Track download
+    async function trackDownload() {
+      try {
+        await fetch(`${WORKER_URL}/track/download`, {
+          method: 'POST'
+        });
+        loadStats(); // Refresh stats after download
+      } catch (error) {
+        console.error('Error tracking download:', error);
+      }
+    }
+
+    // Load current stats
+    async function loadStats() {
+      try {
+        const response = await fetch(`${WORKER_URL}/stats`);
+        const data = await response.json();
+        document.getElementById('view-count').textContent = data.views;
+        document.getElementById('download-count').textContent = data.downloads;
+      } catch (error) {
+        console.error('Error loading stats:', error);
+        document.getElementById('view-count').textContent = '---';
+        document.getElementById('download-count').textContent = '---';
+      }
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      trackView();
+    });
+
     function toggleDownloadMenu() {
       const menu = document.getElementById("downloadMenu");
       menu.style.display = menu.style.display === "block" ? "none" : "block";
