@@ -34,10 +34,10 @@
     .share-item.kakao:hover { color: #FEE500; }
     .share-item.band:hover { color: #00C73C; }
     
-    /* Fix hero height - remove the excessive min-height */
+    /* Fix hero to fit viewport properly */
     .hero {
-      min-height: 80vh !important;
-      padding: 6rem 2rem !important;
+      min-height: calc(100vh - 60px) !important; /* Account for nav height */
+      padding: 2rem 2rem !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
@@ -47,6 +47,7 @@
     body {
       min-height: 100vh;
       overflow-y: auto;
+      margin: 0;
     }
     
     /* Bring dropdown menus to front and give them space */
@@ -61,16 +62,17 @@
       border-radius: 0 0 8px 8px;
     }
     
-    /* Add spacing to hero actions to prevent clipping */
+    /* MAIN FIX: Remove excessive bottom padding */
     .hero-actions {
       margin-top: 2rem !important;
-      padding-bottom: 80px; /* Reduced from 200px - just enough space for dropdowns */
+      padding-bottom: 0 !important; /* Changed from 80px */
     }
     
-    /* Reduce footer height */
+    /* Compact footer */
     footer {
       padding: 1rem 2rem !important;
       min-height: 40px !important;
+      position: relative;
     }
     
     .footer-viewcount {
