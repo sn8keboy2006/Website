@@ -214,7 +214,8 @@
 
     // Initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
-      trackView();
+      loadStats(); // Load both views and downloads
+      trackView();  // Then increment the view
     });
 
     function toggleDownloadMenu() {
